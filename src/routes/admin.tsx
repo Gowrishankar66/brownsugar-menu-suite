@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { LogOut, Plus, Trash2, Image as ImageIcon, Loader2, ShieldCheck, QrCode } from "lucide-react";
-import QRCode from "qrcode.react";
+import { QRCodeCanvas as QRCode } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, MenuItem } from "@/lib/menu-types";
 import { Button } from "@/components/ui/button";
