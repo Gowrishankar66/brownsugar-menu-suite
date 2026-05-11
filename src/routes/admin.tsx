@@ -63,6 +63,9 @@ function AuthForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -88,6 +91,20 @@ function AuthForm() {
     }
   }
 
+  async function sendReset(e: FormEvent) {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: window.location.origin + "/reset-password",
+    });
+    setForgotBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Check your email for the reset link");
+    setForgotOpen(false);
+    setForgotEmail("");
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-hero px-4">
       <Card className="w-full max-w-md rounded-3xl border-0 p-8 shadow-elegant">
@@ -96,7 +113,8 @@ function AuthForm() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h1 className="mt-4 font-display text-3xl">BrownSugar Admin</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to manage the menu</p>
+          <p className="text-[11px] font-light tracking-[0.2em] text-muted-foreground/80 uppercase mt-1">by Devaki Vijayaraman</p>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to manage the menu</p>
         </div>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div>
@@ -110,11 +128,34 @@ function AuthForm() {
           <Button type="submit" disabled={busy} className="h-11 w-full rounded-xl bg-primary text-primary-foreground hover:opacity-90">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "login" ? "Sign In" : "Create Account"}
           </Button>
+          {mode === "login" && (
+            <button type="button" onClick={() => { setForgotEmail(email); setForgotOpen(true); }} className="block w-full text-center text-xs text-primary hover:underline">
+              Forgot password?
+            </button>
+          )}
           <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")} className="block w-full text-center text-xs text-muted-foreground hover:text-primary">
             {mode === "login" ? "First time? Create an admin account" : "Have an account? Sign in"}
           </button>
         </form>
       </Card>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Reset your password</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={sendReset} className="space-y-4">
+            <p className="text-sm text-muted-foreground">Enter the email associated with your admin account and we'll send you a secure reset link.</p>
+            <div>
+              <Label htmlFor="femail">Email</Label>
+              <Input id="femail" type="email" required value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="mt-1.5 h-11 rounded-xl" />
+            </div>
+            <Button type="submit" disabled={forgotBusy} className="h-11 w-full rounded-xl bg-primary text-primary-foreground hover:opacity-90">
+              {forgotBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
