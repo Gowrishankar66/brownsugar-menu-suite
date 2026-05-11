@@ -13,9 +13,14 @@ export function MenuHero() {
         <div className="mx-auto inline-flex items-center justify-center rounded-full glass px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-primary-foreground/80">
           Premium Café · QR Menu
         </div>
-        <h1 className="mt-5 font-display text-5xl leading-[1.05] text-foreground sm:text-6xl">
-          BrownSugar
-        </h1>
+        <div className="mt-5 flex flex-col items-center justify-center gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+          <h1 className="font-display text-5xl leading-[1.05] text-foreground sm:text-6xl">
+            BrownSugar
+          </h1>
+          <span className="font-display text-sm italic font-light text-muted-foreground sm:text-base">
+            by Devaki Vijayaraman
+          </span>
+        </div>
         <p className="mt-3 text-sm font-medium tracking-[0.3em] text-primary-foreground/70 uppercase">
           Fresh · Cozy · Delicious
         </p>
