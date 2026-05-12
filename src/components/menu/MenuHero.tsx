@@ -1,4 +1,6 @@
 import { Clock, MapPin } from "lucide-react";
+
+const MAP_URL = "https://maps.app.goo.gl/4wswYMMeJ6nWr4A99";
 import heroImg from "@/assets/hero.jpg";
 
 export function MenuHero() {
@@ -18,7 +20,7 @@ export function MenuHero() {
             BrownSugar
           </h1>
           <span className="font-display text-sm italic font-light text-muted-foreground sm:text-base">
-            by Devaki Vijayaraman
+            by Master Chef Devaki
           </span>
         </div>
         <p className="mt-3 text-sm font-medium tracking-[0.3em] text-primary-foreground/70 uppercase">
@@ -34,15 +36,31 @@ export function MenuHero() {
               <Clock className="h-3.5 w-3.5" />
               <span className="text-[10px] font-semibold uppercase tracking-wider">Open Today</span>
             </div>
-            <p className="mt-1 text-sm font-semibold text-foreground">8:00 AM – 11:00 PM</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">Open Daily · 10:00 AM – 2:00 AM</p>
           </div>
-          <div className="rounded-2xl bg-card/80 p-3 shadow-card backdrop-blur">
+          <a
+            href={MAP_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-2xl bg-card/80 p-3 shadow-card backdrop-blur transition-smooth hover:-translate-y-0.5 hover:shadow-elegant"
+          >
             <div className="flex items-center gap-2 text-primary-foreground/70">
               <MapPin className="h-3.5 w-3.5" />
               <span className="text-[10px] font-semibold uppercase tracking-wider">Location</span>
             </div>
-            <p className="mt-1 text-sm font-semibold text-foreground">Main Street · City</p>
-          </div>
+            <p className="mt-1 text-sm font-semibold text-foreground">View on Google Maps</p>
+          </a>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <a
+            href={MAP_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-soft transition-smooth hover:-translate-y-0.5 hover:shadow-elegant"
+          >
+            <MapPin className="h-4 w-4" /> View Location
+          </a>
         </div>
       </div>
     </header>
