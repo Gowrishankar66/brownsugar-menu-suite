@@ -113,7 +113,7 @@ function AuthForm() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h1 className="mt-4 font-display text-3xl">BrownSugar Admin</h1>
-          <p className="text-[11px] font-light tracking-[0.2em] text-muted-foreground/80 uppercase mt-1">by Devaki Vijayaraman</p>
+          <p className="text-[11px] font-light tracking-[0.2em] text-muted-foreground/80 uppercase mt-1">by Master Chef Devaki</p>
           <p className="mt-2 text-sm text-muted-foreground">Sign in to manage the menu</p>
         </div>
         <form onSubmit={submit} className="mt-6 space-y-4">

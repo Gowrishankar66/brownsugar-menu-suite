@@ -25,7 +25,7 @@ export function MenuFooter() {
           <MessageCircle className="h-4 w-4" /> WhatsApp
         </a>
         <a
-          href="https://maps.google.com/?q=BrownSugar+Cafe"
+          href="https://maps.app.goo.gl/4wswYMMeJ6nWr4A99"
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-2 rounded-full bg-card px-5 py-2.5 text-sm font-medium text-foreground shadow-soft transition-smooth hover:-translate-y-0.5"
