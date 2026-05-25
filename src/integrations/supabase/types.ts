@@ -41,10 +41,12 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          gst_percentage: number
           id: string
           image_url: string | null
           name: string
           price: number
+          sku: string | null
           sort_order: number
           veg_type: string
         }
@@ -53,10 +55,12 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          gst_percentage?: number
           id?: string
           image_url?: string | null
           name: string
           price?: number
+          sku?: string | null
           sort_order?: number
           veg_type?: string
         }
@@ -65,10 +69,12 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          gst_percentage?: number
           id?: string
           image_url?: string | null
           name?: string
           price?: number
+          sku?: string | null
           sort_order?: number
           veg_type?: string
         }
@@ -81,6 +87,149 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          gst_percentage: number
+          id: string
+          line_gst: number
+          line_subtotal: number
+          line_total: number
+          menu_item_id: string | null
+          name: string
+          order_id: string
+          quantity: number
+          sku: string | null
+          special_instructions: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          gst_percentage: number
+          id?: string
+          line_gst: number
+          line_subtotal: number
+          line_total: number
+          menu_item_id?: string | null
+          name: string
+          order_id: string
+          quantity: number
+          sku?: string | null
+          special_instructions?: string | null
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          gst_percentage?: number
+          id?: string
+          line_gst?: number
+          line_subtotal?: number
+          line_total?: number
+          menu_item_id?: string | null
+          name?: string
+          order_id?: string
+          quantity?: number
+          sku?: string | null
+          special_instructions?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          daily_seq: number
+          gst_amount: number
+          id: string
+          notes: string | null
+          order_date: string
+          order_number: string
+          status: string
+          subtotal: number
+          table_id: string | null
+          table_number: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_seq: number
+          gst_amount?: number
+          id?: string
+          notes?: string | null
+          order_date?: string
+          order_number: string
+          status?: string
+          subtotal?: number
+          table_id?: string | null
+          table_number: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_seq?: number
+          gst_amount?: number
+          id?: string
+          notes?: string | null
+          order_date?: string
+          order_number?: string
+          status?: string
+          subtotal?: number
+          table_id?: string | null
+          table_number?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tables: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          table_number: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          table_number: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          table_number?: number
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
