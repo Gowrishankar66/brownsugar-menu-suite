@@ -10,12 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as OrderRouteImport } from './routes/order'
+import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrderStatusOrderIdRouteImport } from './routes/order-status.$orderId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderRoute = OrderRouteImport.update({
+  id: '/order',
+  path: '/order',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KitchenRoute = KitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -28,35 +41,71 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrderStatusOrderIdRoute = OrderStatusOrderIdRouteImport.update({
+  id: '/order-status/$orderId',
+  path: '/order-status/$orderId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/kitchen': typeof KitchenRoute
+  '/order': typeof OrderRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/order-status/$orderId': typeof OrderStatusOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/kitchen': typeof KitchenRoute
+  '/order': typeof OrderRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/order-status/$orderId': typeof OrderStatusOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/kitchen': typeof KitchenRoute
+  '/order': typeof OrderRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/order-status/$orderId': typeof OrderStatusOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/reset-password'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/kitchen'
+    | '/order'
+    | '/reset-password'
+    | '/order-status/$orderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/reset-password'
-  id: '__root__' | '/' | '/admin' | '/reset-password'
+  to:
+    | '/'
+    | '/admin'
+    | '/kitchen'
+    | '/order'
+    | '/reset-password'
+    | '/order-status/$orderId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/kitchen'
+    | '/order'
+    | '/reset-password'
+    | '/order-status/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  KitchenRoute: typeof KitchenRoute
+  OrderRoute: typeof OrderRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  OrderStatusOrderIdRoute: typeof OrderStatusOrderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +115,20 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order': {
+      id: '/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kitchen': {
+      id: '/kitchen'
+      path: '/kitchen'
+      fullPath: '/kitchen'
+      preLoaderRoute: typeof KitchenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -82,24 +145,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/order-status/$orderId': {
+      id: '/order-status/$orderId'
+      path: '/order-status/$orderId'
+      fullPath: '/order-status/$orderId'
+      preLoaderRoute: typeof OrderStatusOrderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  KitchenRoute: KitchenRoute,
+  OrderRoute: OrderRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  OrderStatusOrderIdRoute: OrderStatusOrderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

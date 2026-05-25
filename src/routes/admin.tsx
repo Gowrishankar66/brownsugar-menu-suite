@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { LogOut, Plus, Trash2, Image as ImageIcon, Loader2, ShieldCheck, QrCode } from "lucide-react";
-import { QRCodeCanvas as QRCode } from "qrcode.react";
+import { LogOut, Plus, Trash2, Image as ImageIcon, Loader2, ShieldCheck, ChefHat, Download } from "lucide-react";
+import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, MenuItem } from "@/lib/menu-types";
 import { Button } from "@/components/ui/button";
@@ -211,9 +211,12 @@ function Dashboard() {
             <h1 className="font-display text-xl">BrownSugar Admin</h1>
             <p className="text-[11px] text-muted-foreground">Manage your live menu</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full">
-            <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
-          </Button>
+          <div className="flex items-center gap-2">
+            <a href="/kitchen"><Button variant="outline" size="sm" className="rounded-full"><ChefHat className="mr-1.5 h-3.5 w-3.5" /> Kitchen</Button></a>
+            <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full">
+              <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -228,7 +231,7 @@ function Dashboard() {
           <TabsList className="rounded-full">
             <TabsTrigger value="items" className="rounded-full">Menu Items</TabsTrigger>
             <TabsTrigger value="categories" className="rounded-full">Categories</TabsTrigger>
-            <TabsTrigger value="qr" className="rounded-full">QR Code</TabsTrigger>
+            <TabsTrigger value="tables" className="rounded-full">Tables &amp; QR</TabsTrigger>
           </TabsList>
 
           <TabsContent value="items" className="mt-4 space-y-4">
@@ -253,8 +256,8 @@ function Dashboard() {
             <CategoriesPanel categories={categories} onChanged={refresh} />
           </TabsContent>
 
-          <TabsContent value="qr" className="mt-4">
-            <QrPanel />
+          <TabsContent value="tables" className="mt-4">
+            <TablesPanel />
           </TabsContent>
         </Tabs>
       </main>
@@ -310,8 +313,10 @@ function ItemRow({ item, categories, onChanged }: { item: MenuItem; categories: 
 function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories: Category[]; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(item?.name ?? "");
+  const [sku, setSku] = useState(item?.sku ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [price, setPrice] = useState(item?.price.toString() ?? "");
+  const [gst, setGst] = useState(item?.gst_percentage?.toString() ?? "18");
   const [categoryId, setCategoryId] = useState(item?.category_id ?? categories[0]?.id ?? "");
   const [vegType, setVegType] = useState<"veg" | "non-veg">(item?.veg_type ?? "veg");
   const [available, setAvailable] = useState(item?.available ?? true);
@@ -340,6 +345,8 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
     setBusy(true);
     const payload = {
       name, description: description || null, price: parseFloat(price) || 0,
+      gst_percentage: parseFloat(gst) || 0,
+      sku: sku.trim() || null,
       category_id: categoryId || null, veg_type: vegType, available, image_url: imageUrl || null,
     };
     const res = item
@@ -378,6 +385,16 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
           <div>
             <Label>Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="mt-1.5" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>SKU / Item #</Label>
+              <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="ITM-0001" className="mt-1.5" />
+            </div>
+            <div>
+              <Label>GST %</Label>
+              <Input type="number" step="0.01" min="0" max="100" value={gst} onChange={(e) => setGst(e.target.value)} className="mt-1.5" />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -452,26 +469,106 @@ function CategoriesPanel({ categories, onChanged }: { categories: Category[]; on
   );
 }
 
-function QrPanel() {
-  const url = typeof window !== "undefined" ? window.location.origin : "";
-  function download() {
-    const canvas = document.querySelector<HTMLCanvasElement>("#brownsugar-qr canvas");
-    if (!canvas) return;
-    const link = document.createElement("a");
-    link.download = "brownsugar-menu-qr.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+type TableRow = { id: string; table_number: number; name: string; active: boolean; created_at: string };
+
+function TablesPanel() {
+  const [tables, setTables] = useState<TableRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [newNum, setNewNum] = useState("");
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  async function refresh() {
+    const { data } = await supabase.from("tables").select("*").order("table_number");
+    setTables((data ?? []) as TableRow[]);
+    setLoading(false);
   }
+  useEffect(() => { refresh(); }, []);
+
+  async function addTable(e: FormEvent) {
+    e.preventDefault();
+    const n = parseInt(newNum, 10);
+    if (!n || !newName.trim()) return;
+    const { error } = await supabase.from("tables").insert({ table_number: n, name: newName.trim() });
+    if (error) toast.error(error.message);
+    else { toast.success("Table added"); setNewName(""); setNewNum(""); refresh(); }
+  }
+  async function toggle(t: TableRow) {
+    const { error } = await supabase.from("tables").update({ active: !t.active }).eq("id", t.id);
+    if (error) toast.error(error.message); else refresh();
+  }
+  async function rename(t: TableRow) {
+    const name = prompt("Table name", t.name);
+    if (!name) return;
+    const { error } = await supabase.from("tables").update({ name }).eq("id", t.id);
+    if (error) toast.error(error.message); else refresh();
+  }
+  async function del(t: TableRow) {
+    if (!confirm(`Delete ${t.name}?`)) return;
+    const { error } = await supabase.from("tables").delete().eq("id", t.id);
+    if (error) toast.error(error.message); else refresh();
+  }
+  async function downloadQR(t: TableRow) {
+    const url = `${origin}/order?table=${t.table_number}`;
+    const dataUrl = await QRCode.toDataURL(url, { width: 600, margin: 2 });
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `qr-table-${t.table_number}.png`;
+    a.click();
+  }
+  function printQR(t: TableRow) {
+    const url = `${origin}/order?table=${t.table_number}`;
+    QRCode.toDataURL(url, { width: 600, margin: 2 }).then((dataUrl) => {
+      const w = window.open("", "_blank");
+      if (!w) return;
+      w.document.write(`<html><head><title>QR ${t.name}</title></head><body style="text-align:center;font-family:sans-serif;padding:40px"><h1>${t.name}</h1><p>Scan to order at BrownSugar Café</p><img src="${dataUrl}" style="width:400px"/><p style="font-size:12px;color:#666">${url}</p><script>setTimeout(()=>window.print(),300)</script></body></html>`);
+      w.document.close();
+    });
+  }
+
   return (
-    <Card className="mx-auto max-w-md rounded-3xl p-8 text-center shadow-elegant">
-      <QrCode className="mx-auto h-6 w-6 text-primary" />
-      <h2 className="mt-2 font-display text-2xl">Your Menu QR Code</h2>
-      <p className="mt-1 text-xs text-muted-foreground">Print and place at every table</p>
-      <div id="brownsugar-qr" className="mx-auto mt-6 inline-block rounded-2xl bg-white p-4 shadow-soft">
-        <QRCode value={url} size={220} />
-      </div>
-      <p className="mt-3 break-all text-xs text-muted-foreground">{url}</p>
-      <Button onClick={download} className="mt-5 rounded-full bg-primary text-primary-foreground hover:opacity-90">Download QR</Button>
-    </Card>
+    <div className="space-y-4">
+      <Card className="rounded-2xl p-4 shadow-card">
+        <form onSubmit={addTable} className="grid grid-cols-[100px_1fr_auto] gap-2">
+          <Input type="number" min="1" value={newNum} onChange={(e) => setNewNum(e.target.value)} placeholder="No." />
+          <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Table name (e.g. Patio 1)" />
+          <Button type="submit" className="rounded-xl bg-primary text-primary-foreground"><Plus className="h-4 w-4" /></Button>
+        </form>
+      </Card>
+      {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tables.map((t) => (
+            <Card key={t.id} className={`rounded-2xl p-4 shadow-card ${!t.active && "opacity-60"}`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-display text-xl">{t.name}</p>
+                  <p className="text-[11px] text-muted-foreground">#{t.table_number}</p>
+                </div>
+                <Switch checked={t.active} onCheckedChange={() => toggle(t)} />
+              </div>
+              <QrPreview url={`${origin}/order?table=${t.table_number}`} />
+              <p className="mt-1 truncate text-[10px] text-muted-foreground" title={`${origin}/order?table=${t.table_number}`}>/order?table={t.table_number}</p>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => downloadQR(t)}><Download className="mr-1 h-3 w-3" /> PNG</Button>
+                <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => printQR(t)}>Print</Button>
+                <Button size="sm" variant="ghost" className="h-7 rounded-full text-xs" onClick={() => rename(t)}>Rename</Button>
+                <Button size="sm" variant="ghost" className="h-7 rounded-full text-xs text-destructive hover:bg-destructive/10" onClick={() => del(t)}><Trash2 className="h-3 w-3" /></Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
+
+function QrPreview({ url }: { url: string }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => { QRCode.toDataURL(url, { width: 240, margin: 1 }).then(setSrc); }, [url]);
+  return (
+    <div className="mx-auto mt-3 grid h-32 w-32 place-items-center rounded-xl bg-white p-2">
+      {src && <img src={src} alt="QR" className="h-full w-full" />}
+    </div>
+  );
+}
+
