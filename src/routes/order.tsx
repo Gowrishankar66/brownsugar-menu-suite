@@ -222,7 +222,8 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
     try {
       const { data: order, error } = await supabase
         .from("orders")
-        .insert({ table_id: tableId, table_number: tableNumberInt, subtotal: t.subtotal, gst_amount: t.gst, total: t.total, notes: notes || null })
+        // order_number & daily_seq are filled by a BEFORE INSERT trigger
+        .insert({ table_id: tableId, table_number: tableNumberInt, subtotal: t.subtotal, gst_amount: t.gst, total: t.total, notes: notes || null, order_number: "", daily_seq: 0 })
         .select()
         .single();
       if (error) throw error;
