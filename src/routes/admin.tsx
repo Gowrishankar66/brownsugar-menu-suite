@@ -310,8 +310,10 @@ function ItemRow({ item, categories, onChanged }: { item: MenuItem; categories: 
 function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories: Category[]; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(item?.name ?? "");
+  const [sku, setSku] = useState(item?.sku ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [price, setPrice] = useState(item?.price.toString() ?? "");
+  const [gst, setGst] = useState(item?.gst_percentage?.toString() ?? "18");
   const [categoryId, setCategoryId] = useState(item?.category_id ?? categories[0]?.id ?? "");
   const [vegType, setVegType] = useState<"veg" | "non-veg">(item?.veg_type ?? "veg");
   const [available, setAvailable] = useState(item?.available ?? true);
@@ -340,6 +342,8 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
     setBusy(true);
     const payload = {
       name, description: description || null, price: parseFloat(price) || 0,
+      gst_percentage: parseFloat(gst) || 0,
+      sku: sku.trim() || null,
       category_id: categoryId || null, veg_type: vegType, available, image_url: imageUrl || null,
     };
     const res = item
