@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { LogOut, Plus, Trash2, Image as ImageIcon, Loader2, ShieldCheck, QrCode } from "lucide-react";
-import { QRCodeCanvas as QRCode } from "qrcode.react";
+import { LogOut, Plus, Trash2, Image as ImageIcon, Loader2, ShieldCheck, ChefHat, Download } from "lucide-react";
+import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, MenuItem } from "@/lib/menu-types";
 import { Button } from "@/components/ui/button";
@@ -211,9 +211,12 @@ function Dashboard() {
             <h1 className="font-display text-xl">BrownSugar Admin</h1>
             <p className="text-[11px] text-muted-foreground">Manage your live menu</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full">
-            <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
-          </Button>
+          <div className="flex items-center gap-2">
+            <a href="/kitchen"><Button variant="outline" size="sm" className="rounded-full"><ChefHat className="mr-1.5 h-3.5 w-3.5" /> Kitchen</Button></a>
+            <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full">
+              <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -228,7 +231,7 @@ function Dashboard() {
           <TabsList className="rounded-full">
             <TabsTrigger value="items" className="rounded-full">Menu Items</TabsTrigger>
             <TabsTrigger value="categories" className="rounded-full">Categories</TabsTrigger>
-            <TabsTrigger value="qr" className="rounded-full">QR Code</TabsTrigger>
+            <TabsTrigger value="tables" className="rounded-full">Tables &amp; QR</TabsTrigger>
           </TabsList>
 
           <TabsContent value="items" className="mt-4 space-y-4">
@@ -253,8 +256,8 @@ function Dashboard() {
             <CategoriesPanel categories={categories} onChanged={refresh} />
           </TabsContent>
 
-          <TabsContent value="qr" className="mt-4">
-            <QrPanel />
+          <TabsContent value="tables" className="mt-4">
+            <TablesPanel />
           </TabsContent>
         </Tabs>
       </main>
@@ -382,6 +385,16 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
           <div>
             <Label>Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="mt-1.5" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>SKU / Item #</Label>
+              <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="ITM-0001" className="mt-1.5" />
+            </div>
+            <div>
+              <Label>GST %</Label>
+              <Input type="number" step="0.01" min="0" max="100" value={gst} onChange={(e) => setGst(e.target.value)} className="mt-1.5" />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
