@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { OrdersPanel } from "@/components/admin/OrdersPanel";
+import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
