@@ -24,6 +24,9 @@ type State = {
   setLastOrder: (table: string, id: string) => void;
 };
 
+const EMPTY_CART: CartLine[] = [];
+export const selectCart = (table: string) => (s: State) => s.carts[table] ?? EMPTY_CART;
+
 export const useCart = create<State>()(
   persist(
     (set) => ({
