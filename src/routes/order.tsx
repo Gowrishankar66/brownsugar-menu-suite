@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Minus, Plus, ShoppingCart, Trash2, X, Loader2, MessageSquare, ImageOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CafeTable, Category, MenuItem } from "@/lib/menu-types";
-import { useCart, cartTotals, lineTotals } from "@/lib/cart-store";
+import { useCart, selectCart, cartTotals, lineTotals } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +32,7 @@ function OrderPage() {
   const [query, setQuery] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
 
-  const cart = useCart((s) => s.carts[tableKey] ?? []);
+  const cart = useCart(selectCart(tableKey));
   const add = useCart((s) => s.add);
 
   useEffect(() => {
@@ -206,7 +206,7 @@ function QtyStepper({ qty, onChange }: { qty: number; onChange: (n: number) => v
 }
 
 function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string; tableNumberInt: number; tableId: string; onPlaced: (orderId: string) => void }) {
-  const cart = useCart((s) => s.carts[table] ?? []);
+  const cart = useCart(selectCart(table));
   const setQty = useCart((s) => s.setQty);
   const setInstructions = useCart((s) => s.setInstructions);
   const remove = useCart((s) => s.remove);
