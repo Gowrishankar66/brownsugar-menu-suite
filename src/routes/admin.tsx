@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { OrdersPanel } from "@/components/admin/OrdersPanel";
+import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -228,10 +230,12 @@ function Dashboard() {
         </div>
 
         <Tabs defaultValue="items">
-          <TabsList className="rounded-full">
+          <TabsList className="flex h-auto flex-wrap rounded-2xl">
             <TabsTrigger value="items" className="rounded-full">Menu Items</TabsTrigger>
             <TabsTrigger value="categories" className="rounded-full">Categories</TabsTrigger>
             <TabsTrigger value="tables" className="rounded-full">Tables &amp; QR</TabsTrigger>
+            <TabsTrigger value="orders" className="rounded-full">Orders</TabsTrigger>
+            <TabsTrigger value="analytics" className="rounded-full">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="items" className="mt-4 space-y-4">
@@ -258,6 +262,14 @@ function Dashboard() {
 
           <TabsContent value="tables" className="mt-4">
             <TablesPanel />
+          </TabsContent>
+
+          <TabsContent value="orders" className="mt-4">
+            <OrdersPanel />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-4">
+            <AnalyticsPanel />
           </TabsContent>
         </Tabs>
       </main>
