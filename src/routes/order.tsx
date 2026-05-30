@@ -159,8 +159,8 @@ function OrderPage() {
                   {item.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div>
-                      <p className="text-sm font-semibold">₹{Number(item.price).toFixed(0)}</p>
-                      <p className="text-[10px] text-muted-foreground">+{item.gst_percentage}% GST</p>
+                      <p className="text-sm font-semibold font-ui">₹{Number(item.price).toFixed(0)}</p>
+                      <p className="text-[10px] text-muted-foreground font-ui">+{item.gst_percentage}% GST</p>
                     </div>
                     {disabled ? (
                       <span className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] font-semibold uppercase text-destructive">Sold out</span>
