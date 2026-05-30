@@ -147,4 +147,17 @@
   .shadow-card { box-shadow: var(--shadow-card); }
   .transition-smooth { transition: var(--transition-smooth); }
   .text-balance { text-wrap: balance; }
+  .font-ui {
+    font-family: var(--font-ui);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  @keyframes flash-new {
+    0%, 100% { box-shadow: 0 0 0 0 oklch(0.83 0.08 190 / 0); }
+    20% { box-shadow: 0 0 0 6px oklch(0.83 0.08 190 / 0.55); }
+    50% { box-shadow: 0 0 0 12px oklch(0.83 0.08 190 / 0); }
+  }
+  .flash-new {
+    animation: flash-new 1.4s ease-out 3;
+  }
 }
