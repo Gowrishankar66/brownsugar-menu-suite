@@ -310,7 +310,7 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
   return (
     <Card className={`rounded-2xl border-0 p-5 shadow-card ${colors}`}>
       <p className="text-[11px] font-semibold uppercase tracking-widest opacity-80">{label}</p>
-      <p className="mt-1 font-display text-4xl">{value}</p>
+      <p className="mt-1 font-ui text-4xl font-bold">{value}</p>
     </Card>
   );
 }
