@@ -199,7 +199,7 @@ function QtyStepper({ qty, onChange }: { qty: number; onChange: (n: number) => v
   return (
     <div className="flex items-center gap-2 rounded-full bg-secondary p-1">
       <button onClick={() => onChange(qty - 1)} className="grid h-7 w-7 place-items-center rounded-full bg-card text-foreground shadow-soft"><Minus className="h-3.5 w-3.5" /></button>
-      <span className="min-w-[1.5rem] text-center text-sm font-semibold">{qty}</span>
+      <span className="min-w-[1.5rem] text-center text-sm font-bold font-ui">{qty}</span>
       <button onClick={() => onChange(qty + 1)} className="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground shadow-soft"><Plus className="h-3.5 w-3.5" /></button>
     </div>
   );
