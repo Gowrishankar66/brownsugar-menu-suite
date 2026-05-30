@@ -201,6 +201,27 @@ function Dashboard() {
   }
   useEffect(() => { refresh(); }, []);
 
+  // Realtime: new-order chime + visual toast across the admin dashboard.
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-orders-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (p) => {
+        const o = p.new as { order_number: string; table_number: number };
+        playNotify("new");
+        toast.success(`New order #${o.order_number} — Table ${o.table_number}`);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (p) => {
+        const o = p.new as { status: string; order_number: string };
+        if (o.status === "cancelled") {
+          playNotify("cancelled");
+          toast.warning(`Order #${o.order_number} cancelled`);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+
   const stats = {
     total: items.length,
     available: items.filter((i) => i.available).length,
