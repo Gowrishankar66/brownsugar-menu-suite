@@ -62,11 +62,11 @@ function Kitchen() {
   const [orders, setOrders] = useState<(Order & { items: OrderItem[] })[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<Sort>("oldest");
-  const [sound, setSound] = useState(true);
+  const [flashIds, setFlashIds] = useState<Set<string>>(new Set());
   const seenIds = useRef<Set<string>>(new Set());
+  const initialised = useRef(false);
 
   async function load() {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
     const { data: os } = await supabase
       .from("orders")
       .select("*")
@@ -80,8 +80,16 @@ function Kitchen() {
     }
     const grouped = (os ?? []).map((o) => ({ ...(o as Order), items: its.filter((i) => i.order_id === o.id) }));
     grouped.forEach((o) => seenIds.current.add(o.id));
+    initialised.current = true;
     setOrders(grouped);
     setLoading(false);
+  }
+
+  function flashOrder(id: string) {
+    setFlashIds((prev) => { const n = new Set(prev); n.add(id); return n; });
+    window.setTimeout(() => {
+      setFlashIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    }, 4500);
   }
 
   useEffect(() => {
@@ -90,17 +98,21 @@ function Kitchen() {
       .channel("kitchen-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, async (p) => {
         const o = p.new as Order;
-        if (!seenIds.current.has(o.id)) {
-          if (sound) playDing();
+        if (!seenIds.current.has(o.id) && initialised.current) {
+          playNotify("new");
           toast.success(`New order #${o.order_number} — Table ${o.table_number}`);
+          flashOrder(o.id);
         }
         await load();
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, load)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (p) => {
+        const o = p.new as Order;
+        if (o.status === "cancelled") playNotify("cancelled");
+        load();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sound]);
+  }, []);
 
   const sorted = useMemo(() => {
     const a = [...orders];
@@ -118,7 +130,7 @@ function Kitchen() {
             <ChefHat className="h-5 w-5 text-primary" />
             <div>
               <h1 className="font-display text-xl leading-tight">Kitchen</h1>
-              <p className="text-[11px] text-muted-foreground">{orders.length} active order{orders.length !== 1 ? "s" : ""}</p>
+              <p className="text-[11px] text-muted-foreground font-ui">{orders.length} active order{orders.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -130,9 +142,7 @@ function Kitchen() {
                 <SelectItem value="value">Highest value</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={() => setSound((v) => !v)} className="rounded-full" title={sound ? "Mute" : "Unmute"}>
-              {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
+            <NotificationSettings />
             <a href="/admin"><Button variant="outline" size="sm" className="rounded-full">Admin</Button></a>
             <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full"><LogOut className="mr-1 h-3 w-3" /> Sign out</Button>
           </div>
@@ -150,7 +160,7 @@ function Kitchen() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sorted.map((o) => <OrderCard key={o.id} order={o} />)}
+            {sorted.map((o) => <OrderCard key={o.id} order={o} flash={flashIds.has(o.id)} />)}
           </div>
         )}
       </main>
@@ -173,7 +183,7 @@ const STATUS_TONE: Record<OrderStatus, string> = {
   cancelled: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
-function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
+function OrderCard({ order, flash }: { order: Order & { items: OrderItem[] }; flash: boolean }) {
   const placed = new Date(order.created_at);
   const mins = Math.floor((Date.now() - placed.getTime()) / 60000);
   const next = NEXT[order.status];
@@ -184,20 +194,24 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
     else toast.success(`Order #${order.order_number} → ${next.next}`);
   }
   return (
-    <article className={cn("rounded-2xl border-2 bg-card p-4 shadow-card transition-smooth", mins > 15 && order.status !== "ready" ? "border-rose-400/60" : "border-transparent")}>
+    <article className={cn(
+      "rounded-2xl border-2 bg-card p-4 shadow-card transition-smooth",
+      mins > 15 && order.status !== "ready" ? "border-rose-400/60" : "border-transparent",
+      flash && "flash-new ring-2 ring-primary",
+    )}>
       <header className="flex items-start justify-between">
         <div>
-          <p className="font-display text-3xl leading-none">#{order.order_number}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Table {order.table_number} · <Clock className="inline h-3 w-3" /> {mins}m ago</p>
+          <p className="font-ui text-3xl font-bold leading-none">#{order.order_number}</p>
+          <p className="mt-1 text-xs text-muted-foreground font-ui">Table {order.table_number} · <Clock className="inline h-3 w-3" /> {mins}m ago</p>
         </div>
-        <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest", STATUS_TONE[order.status])}>{order.status}</span>
+        <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest font-ui", STATUS_TONE[order.status])}>{order.status}</span>
       </header>
       <ul className="my-4 space-y-1.5 text-sm">
         {order.items.map((it) => (
           <li key={it.id}>
             <div className="flex justify-between gap-2">
-              <span><span className="font-semibold">{it.quantity}×</span> {it.name}</span>
-              <span className="text-muted-foreground">₹{Number(it.line_total).toFixed(0)}</span>
+              <span className="font-ui"><span className="font-bold">{it.quantity}×</span> {it.name}</span>
+              <span className="text-muted-foreground font-ui">₹{Number(it.line_total).toFixed(0)}</span>
             </div>
             {it.special_instructions && <p className="ml-5 text-xs italic text-amber-700">⚠ {it.special_instructions}</p>}
           </li>
@@ -205,7 +219,7 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
       </ul>
       {order.notes && <p className="rounded-xl bg-amber-500/10 p-2 text-xs italic text-amber-800">Note: {order.notes}</p>}
       <footer className="mt-3 flex items-center justify-between border-t border-border pt-3">
-        <p className="text-sm font-semibold">₹{Number(order.total).toFixed(0)}</p>
+        <p className="font-ui text-base font-semibold">₹{Number(order.total).toFixed(0)}</p>
         {next.next && (
           <Button size="sm" onClick={advance} className="rounded-full bg-primary text-primary-foreground hover:opacity-90">{next.label}</Button>
         )}
@@ -213,6 +227,7 @@ function OrderCard({ order }: { order: Order & { items: OrderItem[] } }) {
     </article>
   );
 }
+
 
 let audioCtx: AudioContext | null = null;
 function playDing() {
