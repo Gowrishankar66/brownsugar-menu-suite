@@ -120,7 +120,7 @@ function OrderPage() {
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Cart
                 {cartCount > 0 && (
-                  <span className="ml-2 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs">{cartCount}</span>
+                  <span className="ml-2 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs font-ui font-semibold">{cartCount}</span>
                 )}
               </Button>
             </SheetTrigger>
