@@ -229,17 +229,3 @@ function OrderCard({ order, flash }: { order: Order & { items: OrderItem[] }; fl
 }
 
 
-let audioCtx: AudioContext | null = null;
-function playDing() {
-  try {
-    audioCtx ??= new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const ctx = audioCtx;
-    const o = ctx.createOscillator(); const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = 880; o.type = "sine";
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
-    o.start(); o.stop(ctx.currentTime + 0.45);
-  } catch { /* ignore */ }
-}
