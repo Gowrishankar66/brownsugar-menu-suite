@@ -16,6 +16,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OrdersPanel } from "@/components/admin/OrdersPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
+import { NotificationSettings } from "@/components/admin/NotificationSettings";
+import { playNotify } from "@/lib/notify-sound";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -199,6 +201,27 @@ function Dashboard() {
   }
   useEffect(() => { refresh(); }, []);
 
+  // Realtime: new-order chime + visual toast across the admin dashboard.
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-orders-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (p) => {
+        const o = p.new as { order_number: string; table_number: number };
+        playNotify("new");
+        toast.success(`New order #${o.order_number} — Table ${o.table_number}`);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (p) => {
+        const o = p.new as { status: string; order_number: string };
+        if (o.status === "cancelled") {
+          playNotify("cancelled");
+          toast.warning(`Order #${o.order_number} cancelled`);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+
   const stats = {
     total: items.length,
     available: items.filter((i) => i.available).length,
@@ -214,6 +237,7 @@ function Dashboard() {
             <p className="text-[11px] text-muted-foreground">Manage your live menu</p>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationSettings />
             <a href="/kitchen"><Button variant="outline" size="sm" className="rounded-full"><ChefHat className="mr-1.5 h-3.5 w-3.5" /> Kitchen</Button></a>
             <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full">
               <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
@@ -286,7 +310,7 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
   return (
     <Card className={`rounded-2xl border-0 p-5 shadow-card ${colors}`}>
       <p className="text-[11px] font-semibold uppercase tracking-widest opacity-80">{label}</p>
-      <p className="mt-1 font-display text-4xl">{value}</p>
+      <p className="mt-1 font-ui text-4xl font-bold">{value}</p>
     </Card>
   );
 }

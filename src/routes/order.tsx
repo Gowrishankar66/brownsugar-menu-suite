@@ -120,7 +120,7 @@ function OrderPage() {
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Cart
                 {cartCount > 0 && (
-                  <span className="ml-2 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs">{cartCount}</span>
+                  <span className="ml-2 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs font-ui font-semibold">{cartCount}</span>
                 )}
               </Button>
             </SheetTrigger>
@@ -159,8 +159,8 @@ function OrderPage() {
                   {item.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div>
-                      <p className="text-sm font-semibold">₹{Number(item.price).toFixed(0)}</p>
-                      <p className="text-[10px] text-muted-foreground">+{item.gst_percentage}% GST</p>
+                      <p className="text-sm font-semibold font-ui">₹{Number(item.price).toFixed(0)}</p>
+                      <p className="text-[10px] text-muted-foreground font-ui">+{item.gst_percentage}% GST</p>
                     </div>
                     {disabled ? (
                       <span className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] font-semibold uppercase text-destructive">Sold out</span>
@@ -184,8 +184,8 @@ function OrderPage() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-3 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{cartCount} item{cartCount > 1 ? "s" : ""} · ₹{subtotal.toFixed(0)} + ₹{gst.toFixed(0)} GST</p>
-              <p className="font-display text-xl">₹{total.toFixed(0)}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-ui">{cartCount} item{cartCount > 1 ? "s" : ""} · ₹{subtotal.toFixed(0)} + ₹{gst.toFixed(0)} GST</p>
+              <p className="font-ui text-xl font-bold">₹{total.toFixed(0)}</p>
             </div>
             <Button onClick={() => setCartOpen(true)} className="rounded-full bg-primary px-6 text-primary-foreground hover:opacity-90">Review order</Button>
           </div>
@@ -199,7 +199,7 @@ function QtyStepper({ qty, onChange }: { qty: number; onChange: (n: number) => v
   return (
     <div className="flex items-center gap-2 rounded-full bg-secondary p-1">
       <button onClick={() => onChange(qty - 1)} className="grid h-7 w-7 place-items-center rounded-full bg-card text-foreground shadow-soft"><Minus className="h-3.5 w-3.5" /></button>
-      <span className="min-w-[1.5rem] text-center text-sm font-semibold">{qty}</span>
+      <span className="min-w-[1.5rem] text-center text-sm font-bold font-ui">{qty}</span>
       <button onClick={() => onChange(qty + 1)} className="grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground shadow-soft"><Plus className="h-3.5 w-3.5" /></button>
     </div>
   );
