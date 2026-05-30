@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Bell, ChefHat, Clock, LogOut, Loader2, Volume2, VolumeX } from "lucide-react";
+import { Bell, ChefHat, Clock, LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Order, OrderItem, OrderStatus } from "@/lib/menu-types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { playNotify } from "@/lib/notify-sound";
+import { NotificationSettings } from "@/components/admin/NotificationSettings";
 
 export const Route = createFileRoute("/kitchen")({
   component: KitchenPage,
