@@ -237,6 +237,7 @@ function Dashboard() {
             <p className="text-[11px] text-muted-foreground">Manage your live menu</p>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationSettings />
             <a href="/kitchen"><Button variant="outline" size="sm" className="rounded-full"><ChefHat className="mr-1.5 h-3.5 w-3.5" /> Kitchen</Button></a>
             <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full">
               <LogOut className="mr-1.5 h-3.5 w-3.5" /> Sign out
