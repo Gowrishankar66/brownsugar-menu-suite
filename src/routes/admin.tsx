@@ -16,6 +16,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OrdersPanel } from "@/components/admin/OrdersPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
+import { NotificationSettings } from "@/components/admin/NotificationSettings";
+import { playNotify } from "@/lib/notify-sound";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
