@@ -15,8 +15,28 @@ export const Route = createFileRoute("/")({
   component: MenuPage,
   head: () => ({
     meta: [
-      { title: "BrownSugar Café — Live Menu" },
-      { name: "description", content: "Browse the live menu of BrownSugar Café. Coffee, tea, momos, burgers, sandwiches and indulgent desserts." },
+      { title: "BrownSugar Café — Live Menu by Master Chef Devaki" },
+      { name: "description", content: "Browse the live BrownSugar Café menu — handcrafted coffee, tea, momos, burgers, sandwiches and signature desserts by Master Chef Devaki." },
+      { property: "og:title", content: "BrownSugar Café — Live Menu by Master Chef Devaki" },
+      { property: "og:description", content: "Scan, sip, savour. Explore the live menu of coffee, tea, momos, burgers and indulgent desserts." },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://brown-sugar-menu.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://brown-sugar-menu.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          name: "BrownSugar Café",
+          description: "Dessert and coffee café by Master Chef Devaki serving handcrafted coffee, tea, momos, burgers, sandwiches and signature desserts.",
+          servesCuisine: ["Coffee", "Desserts", "Momos", "Burgers", "Sandwiches"],
+          url: "https://brown-sugar-menu.lovable.app/",
+          hasMenu: "https://brown-sugar-menu.lovable.app/",
+          acceptsReservations: false,
+        }),
+      },
     ],
   }),
 });
