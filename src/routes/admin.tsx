@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { OrdersPanel } from "@/components/admin/OrdersPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 import { NotificationSettings } from "@/components/admin/NotificationSettings";
-import { playNotify } from "@/lib/notify-sound";
+import { playNotify, startRinging, stopRinging, loadNotifySettings } from "@/lib/notify-sound";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -201,14 +201,25 @@ function Dashboard() {
   }
   useEffect(() => { refresh(); }, []);
 
-  // Realtime: new-order chime + visual toast across the admin dashboard.
+  // Realtime: chime + continuous ringer for any unaccepted ("new") orders.
   useEffect(() => {
+    let cancelled = false;
+    async function refreshRinger() {
+      const { data } = await supabase.from("orders").select("id").eq("status", "new").limit(1);
+      const s = loadNotifySettings();
+      const hasNew = (data ?? []).length > 0;
+      if (cancelled) return;
+      if (s.enabled && s.mode === "continuous" && hasNew) startRinging(s);
+      else stopRinging();
+    }
+    refreshRinger();
     const ch = supabase
       .channel("admin-orders-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (p) => {
         const o = p.new as { order_number: string; table_number: number };
         playNotify("new");
         toast.success(`New order #${o.order_number} — Table ${o.table_number}`);
+        refreshRinger();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (p) => {
         const o = p.new as { status: string; order_number: string };
@@ -216,9 +227,10 @@ function Dashboard() {
           playNotify("cancelled");
           toast.warning(`Order #${o.order_number} cancelled`);
         }
+        refreshRinger();
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { cancelled = true; supabase.removeChannel(ch); stopRinging(); };
   }, []);
 
 
@@ -352,7 +364,7 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
   const [sku, setSku] = useState(item?.sku ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [price, setPrice] = useState(item?.price.toString() ?? "");
-  const [gst, setGst] = useState(item?.gst_percentage?.toString() ?? "18");
+  
   const [categoryId, setCategoryId] = useState(item?.category_id ?? categories[0]?.id ?? "");
   const [vegType, setVegType] = useState<"veg" | "non-veg">(item?.veg_type ?? "veg");
   const [available, setAvailable] = useState(item?.available ?? true);
@@ -381,7 +393,7 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
     setBusy(true);
     const payload = {
       name, description: description || null, price: parseFloat(price) || 0,
-      gst_percentage: parseFloat(gst) || 0,
+      gst_percentage: 5, // GST is fixed system-wide at 5% (CGST 2.5% + SGST 2.5%)
       sku: sku.trim() || null,
       category_id: categoryId || null, veg_type: vegType, available, image_url: imageUrl || null,
     };
@@ -422,15 +434,10 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
             <Label>Description</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="mt-1.5" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>SKU / Item #</Label>
-              <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="ITM-0001" className="mt-1.5" />
-            </div>
-            <div>
-              <Label>GST %</Label>
-              <Input type="number" step="0.01" min="0" max="100" value={gst} onChange={(e) => setGst(e.target.value)} className="mt-1.5" />
-            </div>
+          <div>
+            <Label>SKU / Item #</Label>
+            <Input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="ITM-0001" className="mt-1.5" />
+            <p className="mt-1 text-[11px] text-muted-foreground">GST is fixed system-wide at 5% (CGST 2.5% + SGST 2.5%).</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

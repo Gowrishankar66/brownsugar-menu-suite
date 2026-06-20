@@ -160,7 +160,7 @@ function OrderPage() {
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div>
                       <p className="text-sm font-semibold font-ui">₹{Number(item.price).toFixed(0)}</p>
-                      <p className="text-[10px] text-muted-foreground font-ui">+{item.gst_percentage}% GST</p>
+                      <p className="text-[10px] text-muted-foreground font-ui">+5% GST</p>
                     </div>
                     {disabled ? (
                       <span className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] font-semibold uppercase text-destructive">Sold out</span>
@@ -222,8 +222,19 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
     try {
       const { data: order, error } = await supabase
         .from("orders")
-        // order_number & daily_seq are filled by a BEFORE INSERT trigger
-        .insert({ table_id: tableId, table_number: tableNumberInt, subtotal: t.subtotal, gst_amount: t.gst, total: t.total, notes: notes || null, order_number: "", daily_seq: 0 })
+        .insert({
+          table_id: tableId,
+          table_number: tableNumberInt,
+          subtotal: t.subtotal,
+          gst_amount: t.gst,
+          cgst_amount: t.cgst,
+          sgst_amount: t.sgst,
+          total: t.total,
+          notes: notes || null,
+          status: "new",
+          order_number: "",
+          daily_seq: 0,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -240,6 +251,8 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
           special_instructions: l.special_instructions || null,
           line_subtotal: lt.subtotal,
           line_gst: lt.gst,
+          line_cgst: lt.cgst,
+          line_sgst: lt.sgst,
           line_total: lt.total,
         };
       });
@@ -271,7 +284,7 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{l.name}</p>
-                    <p className="text-xs text-muted-foreground">₹{l.unit_price.toFixed(0)} × {l.quantity} · +{l.gst_percentage}% GST</p>
+                    <p className="text-xs text-muted-foreground font-ui">₹{l.unit_price.toFixed(0)} × {l.quantity}</p>
                   </div>
                   <p className="text-sm font-semibold">₹{lineTotals(l).total.toFixed(0)}</p>
                   <button onClick={() => remove(table, l.menu_item_id)} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
@@ -291,9 +304,10 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
       {cart.length > 0 && (
         <div className="border-t border-border pt-4">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes for the kitchen (optional)" className="mb-3 min-h-[60px] text-sm" maxLength={300} />
-          <dl className="space-y-1 text-sm">
+          <dl className="space-y-1 text-sm font-ui">
             <div className="flex justify-between"><dt>Subtotal</dt><dd>₹{t.subtotal.toFixed(2)}</dd></div>
-            <div className="flex justify-between text-muted-foreground"><dt>GST</dt><dd>₹{t.gst.toFixed(2)}</dd></div>
+            <div className="flex justify-between text-muted-foreground"><dt>CGST (2.5%)</dt><dd>₹{t.cgst.toFixed(2)}</dd></div>
+            <div className="flex justify-between text-muted-foreground"><dt>SGST (2.5%)</dt><dd>₹{t.sgst.toFixed(2)}</dd></div>
             <div className="flex justify-between border-t border-border pt-2 font-display text-xl"><dt>Total</dt><dd>₹{t.total.toFixed(2)}</dd></div>
           </dl>
           <div className="mt-4 flex gap-2">

@@ -88,12 +88,52 @@ export type Database = {
           },
         ]
       }
+      order_amendments: {
+        Row: {
+          action: string
+          actor_role: string
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          order_id: string
+        }
+        Insert: {
+          action: string
+          actor_role: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          order_id: string
+        }
+        Update: {
+          action?: string
+          actor_role?: string
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_amendments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
           gst_percentage: number
           id: string
+          line_cgst: number
           line_gst: number
+          line_sgst: number
           line_subtotal: number
           line_total: number
           menu_item_id: string | null
@@ -106,9 +146,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          gst_percentage: number
+          gst_percentage?: number
           id?: string
+          line_cgst?: number
           line_gst: number
+          line_sgst?: number
           line_subtotal: number
           line_total: number
           menu_item_id?: string | null
@@ -123,7 +165,9 @@ export type Database = {
           created_at?: string
           gst_percentage?: number
           id?: string
+          line_cgst?: number
           line_gst?: number
+          line_sgst?: number
           line_subtotal?: number
           line_total?: number
           menu_item_id?: string | null
@@ -153,6 +197,9 @@ export type Database = {
       }
       orders: {
         Row: {
+          accepted_at: string | null
+          cgst_amount: number
+          completed_at: string | null
           created_at: string
           daily_seq: number
           gst_amount: number
@@ -160,6 +207,7 @@ export type Database = {
           notes: string | null
           order_date: string
           order_number: string
+          sgst_amount: number
           status: string
           subtotal: number
           table_id: string | null
@@ -168,6 +216,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          cgst_amount?: number
+          completed_at?: string | null
           created_at?: string
           daily_seq: number
           gst_amount?: number
@@ -175,6 +226,7 @@ export type Database = {
           notes?: string | null
           order_date?: string
           order_number: string
+          sgst_amount?: number
           status?: string
           subtotal?: number
           table_id?: string | null
@@ -183,6 +235,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          cgst_amount?: number
+          completed_at?: string | null
           created_at?: string
           daily_seq?: number
           gst_amount?: number
@@ -190,6 +245,7 @@ export type Database = {
           notes?: string | null
           order_date?: string
           order_number?: string
+          sgst_amount?: number
           status?: string
           subtotal?: number
           table_id?: string | null
