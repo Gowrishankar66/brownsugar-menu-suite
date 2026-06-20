@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { OrdersPanel } from "@/components/admin/OrdersPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 import { NotificationSettings } from "@/components/admin/NotificationSettings";
-import { playNotify } from "@/lib/notify-sound";
+import { playNotify, startRinging, stopRinging, loadNotifySettings } from "@/lib/notify-sound";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -201,14 +201,25 @@ function Dashboard() {
   }
   useEffect(() => { refresh(); }, []);
 
-  // Realtime: new-order chime + visual toast across the admin dashboard.
+  // Realtime: chime + continuous ringer for any unaccepted ("new") orders.
   useEffect(() => {
+    let cancelled = false;
+    async function refreshRinger() {
+      const { data } = await supabase.from("orders").select("id").eq("status", "new").limit(1);
+      const s = loadNotifySettings();
+      const hasNew = (data ?? []).length > 0;
+      if (cancelled) return;
+      if (s.enabled && s.mode === "continuous" && hasNew) startRinging(s);
+      else stopRinging();
+    }
+    refreshRinger();
     const ch = supabase
       .channel("admin-orders-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (p) => {
         const o = p.new as { order_number: string; table_number: number };
         playNotify("new");
         toast.success(`New order #${o.order_number} — Table ${o.table_number}`);
+        refreshRinger();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (p) => {
         const o = p.new as { status: string; order_number: string };
@@ -216,9 +227,10 @@ function Dashboard() {
           playNotify("cancelled");
           toast.warning(`Order #${o.order_number} cancelled`);
         }
+        refreshRinger();
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { cancelled = true; supabase.removeChannel(ch); stopRinging(); };
   }, []);
 
 
