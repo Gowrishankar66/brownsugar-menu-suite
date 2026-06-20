@@ -364,7 +364,7 @@ function ItemDialog({ item, categories, onSaved }: { item?: MenuItem; categories
   const [sku, setSku] = useState(item?.sku ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [price, setPrice] = useState(item?.price.toString() ?? "");
-  const [gst, setGst] = useState(item?.gst_percentage?.toString() ?? "18");
+  
   const [categoryId, setCategoryId] = useState(item?.category_id ?? categories[0]?.id ?? "");
   const [vegType, setVegType] = useState<"veg" | "non-veg">(item?.veg_type ?? "veg");
   const [available, setAvailable] = useState(item?.available ?? true);
