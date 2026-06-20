@@ -28,7 +28,14 @@ export type CafeTable = {
   created_at: string;
 };
 
-export type OrderStatus = "received" | "preparing" | "ready" | "served" | "cancelled";
+export type OrderStatus =
+  | "new"
+  | "accepted"
+  | "preparing"
+  | "ready"
+  | "served"
+  | "completed"
+  | "cancelled";
 
 export type Order = {
   id: string;
@@ -40,8 +47,12 @@ export type Order = {
   status: OrderStatus;
   subtotal: number;
   gst_amount: number;
+  cgst_amount: number;
+  sgst_amount: number;
   total: number;
   notes: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -58,6 +69,27 @@ export type OrderItem = {
   special_instructions: string | null;
   line_subtotal: number;
   line_gst: number;
+  line_cgst: number;
+  line_sgst: number;
   line_total: number;
+  created_at: string;
+};
+
+export type AmendmentAction =
+  | "item_added"
+  | "item_removed"
+  | "quantity_changed"
+  | "note_added"
+  | "status_changed";
+
+export type ActorRole = "admin" | "kitchen" | "customer" | "system";
+
+export type OrderAmendment = {
+  id: string;
+  order_id: string;
+  actor_role: ActorRole;
+  actor_user_id: string | null;
+  action: AmendmentAction;
+  details: Record<string, unknown>;
   created_at: string;
 };

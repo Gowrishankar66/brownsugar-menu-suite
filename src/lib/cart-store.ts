@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { GST_RATE, gstFromSubtotal, recomputeLine } from "./gst";
 
 export type CartLine = {
   menu_item_id: string;
   name: string;
   sku: string | null;
   unit_price: number;
+  /** Kept for back-compat; system-wide GST is fixed at 5%. */
   gst_percentage: number;
   quantity: number;
   special_instructions?: string;
@@ -13,10 +15,9 @@ export type CartLine = {
 };
 
 type State = {
-  // keyed by tableNumber
   carts: Record<string, CartLine[]>;
-  lastOrders: Record<string, string>; // tableNumber -> orderId
-  add: (table: string, line: Omit<CartLine, "quantity">) => void;
+  lastOrders: Record<string, string>;
+  add: (table: string, line: Omit<CartLine, "quantity" | "gst_percentage"> & { gst_percentage?: number }) => void;
   setQty: (table: string, menu_item_id: string, qty: number) => void;
   setInstructions: (table: string, menu_item_id: string, notes: string) => void;
   remove: (table: string, menu_item_id: string) => void;
@@ -38,7 +39,7 @@ export const useCart = create<State>()(
           const idx = cart.findIndex((l) => l.menu_item_id === line.menu_item_id);
           const next = [...cart];
           if (idx >= 0) next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
-          else next.push({ ...line, quantity: 1 });
+          else next.push({ ...line, gst_percentage: GST_RATE, quantity: 1 });
           return { carts: { ...s.carts, [table]: next } };
         }),
       setQty: (table, id, qty) =>
@@ -58,21 +59,17 @@ export const useCart = create<State>()(
       clear: (table) => set((s) => ({ carts: { ...s.carts, [table]: [] } })),
       setLastOrder: (table, id) => set((s) => ({ lastOrders: { ...s.lastOrders, [table]: id } })),
     }),
-    { name: "brownsugar-cart-v1" }
+    { name: "brownsugar-cart-v2" }
   )
 );
 
 export function lineTotals(line: CartLine) {
-  const subtotal = line.unit_price * line.quantity;
-  const gst = subtotal * (line.gst_percentage / 100);
-  return { subtotal, gst, total: subtotal + gst };
+  const t = recomputeLine(line.unit_price, line.quantity);
+  return { subtotal: t.line_subtotal, gst: t.line_gst, cgst: t.line_cgst, sgst: t.line_sgst, total: t.line_total };
 }
 
 export function cartTotals(cart: CartLine[]) {
-  let subtotal = 0, gst = 0;
-  for (const l of cart) {
-    const t = lineTotals(l);
-    subtotal += t.subtotal; gst += t.gst;
-  }
-  return { subtotal, gst, total: subtotal + gst };
+  const subtotal = cart.reduce((s, l) => s + l.unit_price * l.quantity, 0);
+  const t = gstFromSubtotal(subtotal);
+  return { subtotal: Math.round(subtotal * 100) / 100, gst: t.gst, cgst: t.cgst, sgst: t.sgst, total: t.total };
 }

@@ -1,5 +1,7 @@
-// Opens a print-ready bill in a new window. Works for thermal (80mm)
-// and A4 via @media print rules; the user's print dialog picks the size.
+// Opens a print-ready bill in a new window. Works for thermal (80mm) and A4.
+// GST is split into CGST 2.5% + SGST 2.5% per Indian dine-in convention.
+
+import { CGST_RATE, SGST_RATE } from "@/lib/gst";
 
 export type BillOrder = {
   order_number: string;
@@ -8,6 +10,8 @@ export type BillOrder = {
   status: string;
   subtotal: number;
   gst_amount: number;
+  cgst_amount: number;
+  sgst_amount: number;
   total: number;
   notes: string | null;
   created_at: string;
@@ -18,9 +22,7 @@ export type BillItem = {
   sku: string | null;
   quantity: number;
   unit_price: number;
-  gst_percentage: number;
   line_subtotal: number;
-  line_gst: number;
   line_total: number;
 };
 
@@ -44,10 +46,7 @@ const DEFAULT_META: BillMeta = {
 
 function esc(s: string | number | null | undefined): string {
   if (s === null || s === undefined) return "";
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function inr(n: number): string {
@@ -58,7 +57,7 @@ export function printBill(order: BillOrder, items: BillItem[], metaIn?: Partial<
   const meta = { ...DEFAULT_META, ...metaIn };
   const created = new Date(order.created_at);
   const billNo = `B-${order.order_date.replace(/-/g, "")}-${order.order_number}`;
-  const statusTag = order.status === "served" ? "SERVED" : order.status.toUpperCase();
+  const statusTag = order.status.toUpperCase();
   const payTag = (meta.paymentStatus ?? "unpaid").toUpperCase();
 
   const rows = items.map((it) => `
@@ -69,7 +68,6 @@ export function printBill(order: BillOrder, items: BillItem[], metaIn?: Partial<
       </td>
       <td class="c">${esc(it.quantity)}</td>
       <td class="r">${inr(it.unit_price)}</td>
-      <td class="r">${esc(it.gst_percentage)}%</td>
       <td class="r">${inr(it.line_total)}</td>
     </tr>
   `).join("");
@@ -116,7 +114,6 @@ export function printBill(order: BillOrder, items: BillItem[], metaIn?: Partial<
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     @page { margin: 10mm; }
   }
-  /* Thermal-friendly fallback when window is narrow */
   @media (max-width: 360px) {
     .sheet { padding: 6px; }
     .brand { font-size: 16px; }
@@ -148,7 +145,6 @@ export function printBill(order: BillOrder, items: BillItem[], metaIn?: Partial<
           <th class="l">Item</th>
           <th class="c">Qty</th>
           <th class="r">Price</th>
-          <th class="r">GST</th>
           <th class="r">Amount</th>
         </tr>
       </thead>
@@ -157,7 +153,8 @@ export function printBill(order: BillOrder, items: BillItem[], metaIn?: Partial<
 
     <div class="totals">
       <div class="row"><span>Subtotal</span><span>${inr(order.subtotal)}</span></div>
-      <div class="row"><span>Total GST</span><span>${inr(order.gst_amount)}</span></div>
+      <div class="row"><span>CGST (${CGST_RATE}%)</span><span>${inr(order.cgst_amount)}</span></div>
+      <div class="row"><span>SGST (${SGST_RATE}%)</span><span>${inr(order.sgst_amount)}</span></div>
       <div class="row grand"><span>TOTAL</span><span>${inr(order.total)}</span></div>
     </div>
 
@@ -183,7 +180,6 @@ export function printBill(order: BillOrder, items: BillItem[], metaIn?: Partial<
 
   const w = window.open("", "_blank", "width=520,height=720");
   if (!w) {
-    // Fallback: inline data URL
     window.location.href = "data:text/html;charset=utf-8," + encodeURIComponent(html);
     return;
   }
