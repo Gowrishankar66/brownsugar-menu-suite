@@ -15,8 +15,28 @@ export const Route = createFileRoute("/")({
   component: MenuPage,
   head: () => ({
     meta: [
-      { title: "BrownSugar Café — Live Menu" },
-      { name: "description", content: "Browse the live menu of BrownSugar Café. Coffee, tea, momos, burgers, sandwiches and indulgent desserts." },
+      { title: "BrownSugar Café — Live Menu by Master Chef Devaki" },
+      { name: "description", content: "Browse the live BrownSugar Café menu — handcrafted coffee, tea, momos, burgers, sandwiches and signature desserts by Master Chef Devaki." },
+      { property: "og:title", content: "BrownSugar Café — Live Menu by Master Chef Devaki" },
+      { property: "og:description", content: "Scan, sip, savour. Explore the live menu of coffee, tea, momos, burgers and indulgent desserts." },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://brown-sugar-menu.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://brown-sugar-menu.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          name: "BrownSugar Café",
+          description: "Dessert and coffee café by Master Chef Devaki serving handcrafted coffee, tea, momos, burgers, sandwiches and signature desserts.",
+          servesCuisine: ["Coffee", "Desserts", "Momos", "Burgers", "Sandwiches"],
+          url: "https://brown-sugar-menu.lovable.app/",
+          hasMenu: "https://brown-sugar-menu.lovable.app/",
+          acceptsReservations: false,
+        }),
+      },
     ],
   }),
 });
@@ -99,23 +119,29 @@ function MenuPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search the menu..."
+              aria-label="Search the menu"
               className="h-12 rounded-2xl border-0 bg-secondary pl-11 text-base shadow-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
           <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
             <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
-            {(["all", "veg", "non-veg", "available"] as Filter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-smooth",
-                  filter === f ? "bg-primary text-primary-foreground shadow-soft" : "bg-secondary text-secondary-foreground hover:bg-accent",
-                )}
-              >
-                {f === "all" ? "All" : f === "veg" ? "Veg" : f === "non-veg" ? "Non-Veg" : "Available"}
-              </button>
-            ))}
+            {(["all", "veg", "non-veg", "available"] as Filter[]).map((f) => {
+              const label = f === "all" ? "All" : f === "veg" ? "Veg" : f === "non-veg" ? "Non-Veg" : "Available";
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  aria-label={`Filter menu by ${label}`}
+                  aria-pressed={filter === f}
+                  className={cn(
+                    "shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-smooth",
+                    filter === f ? "bg-primary text-primary-foreground shadow-soft" : "bg-secondary text-secondary-foreground hover:bg-accent",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>

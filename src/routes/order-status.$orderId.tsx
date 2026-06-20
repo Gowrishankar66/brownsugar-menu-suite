@@ -62,7 +62,7 @@ function StatusPage() {
       <header className="border-b border-border/40 bg-card/70 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           {table ? (
-            <Link to="/order" search={{ table }} className="inline-flex items-center text-sm text-primary"><ArrowLeft className="mr-1 h-4 w-4" /> Add more items</Link>
+            <Link to="/order" search={{ table }} aria-label="Back to menu to add more items" className="inline-flex items-center text-sm text-primary"><ArrowLeft className="mr-1 h-4 w-4" /> Add more items</Link>
           ) : <span />}
           <p className="text-xs text-muted-foreground">Table {order.table_number}</p>
         </div>

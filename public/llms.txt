@@ -1,0 +1,7 @@
+# BrownSugar Café
+
+> BrownSugar is a dessert and coffee café by Master Chef Devaki, serving handcrafted coffee, tea, momos, burgers, sandwiches and signature desserts. Guests browse a live menu and place dine-in orders by scanning the QR code at their table.
+
+## Pages
+
+- [Live Menu](/): Full café menu with categories, vegetarian filters and live availability.

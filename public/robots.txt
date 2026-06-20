@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /kitchen
+Disallow: /order
+Disallow: /order-status
+Disallow: /reset-password
+
+Sitemap: https://brown-sugar-menu.lovable.app/sitemap.xml
