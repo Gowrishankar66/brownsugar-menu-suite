@@ -119,23 +119,29 @@ function MenuPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search the menu..."
+              aria-label="Search the menu"
               className="h-12 rounded-2xl border-0 bg-secondary pl-11 text-base shadow-none focus-visible:ring-2 focus-visible:ring-primary"
             />
           </div>
           <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
             <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
-            {(["all", "veg", "non-veg", "available"] as Filter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-smooth",
-                  filter === f ? "bg-primary text-primary-foreground shadow-soft" : "bg-secondary text-secondary-foreground hover:bg-accent",
-                )}
-              >
-                {f === "all" ? "All" : f === "veg" ? "Veg" : f === "non-veg" ? "Non-Veg" : "Available"}
-              </button>
-            ))}
+            {(["all", "veg", "non-veg", "available"] as Filter[]).map((f) => {
+              const label = f === "all" ? "All" : f === "veg" ? "Veg" : f === "non-veg" ? "Non-Veg" : "Available";
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  aria-label={`Filter menu by ${label}`}
+                  aria-pressed={filter === f}
+                  className={cn(
+                    "shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-smooth",
+                    filter === f ? "bg-primary text-primary-foreground shadow-soft" : "bg-secondary text-secondary-foreground hover:bg-accent",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>

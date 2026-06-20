@@ -17,7 +17,7 @@ const searchSchema = z.object({ table: z.coerce.number().int().positive().option
 export const Route = createFileRoute("/order")({
   validateSearch: searchSchema,
   component: OrderPage,
-  head: () => ({ meta: [{ title: "BrownSugar Café — Order" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "BrownSugar Café — Order" }, { name: "description", content: "Place your BrownSugar Café dine-in order from your table." }, { name: "robots", content: "noindex, nofollow" }] }),
 });
 
 function OrderPage() {
