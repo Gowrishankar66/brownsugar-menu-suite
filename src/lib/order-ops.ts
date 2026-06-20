@@ -34,7 +34,7 @@ export async function logAmendment(
     actor_role: role,
     actor_user_id: u.user?.id ?? null,
     action,
-    details,
+    details: details as never,
   });
 }
 
@@ -109,7 +109,7 @@ export async function setOrderStatus(
   role: ActorRole,
   prev?: OrderStatus,
 ) {
-  const patch: Record<string, unknown> = { status: next };
+  const patch: { status: OrderStatus; accepted_at?: string; completed_at?: string } = { status: next };
   if (next === "accepted") patch.accepted_at = new Date().toISOString();
   if (next === "completed") patch.completed_at = new Date().toISOString();
   await supabase.from("orders").update(patch).eq("id", orderId);
