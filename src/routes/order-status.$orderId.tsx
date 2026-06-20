@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { CheckCircle2, ChefHat, Clock, PartyPopper, Loader2, ArrowLeft } from "lucide-react";
+import { CheckCircle2, ChefHat, Clock, PartyPopper, Loader2, ArrowLeft, BellRing, Flag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Order, OrderItem, OrderStatus } from "@/lib/menu-types";
 import { cn } from "@/lib/utils";
@@ -16,10 +16,11 @@ export const Route = createFileRoute("/order-status/$orderId")({
 });
 
 const STEPS: { key: OrderStatus; label: string; Icon: typeof Clock }[] = [
-  { key: "received", label: "Received", Icon: CheckCircle2 },
+  { key: "new", label: "Placed", Icon: BellRing },
+  { key: "accepted", label: "Accepted", Icon: CheckCircle2 },
   { key: "preparing", label: "Preparing", Icon: ChefHat },
   { key: "ready", label: "Ready", Icon: PartyPopper },
-  { key: "served", label: "Served", Icon: CheckCircle2 },
+  { key: "served", label: "Served", Icon: Flag },
 ];
 
 function StatusPage() {
@@ -37,15 +38,15 @@ function StatusPage() {
         supabase.from("order_items").select("*").eq("order_id", orderId).order("created_at"),
       ]);
       if (!mounted) return;
-      setOrder((o.data as Order | null) ?? null);
-      setItems((i.data ?? []) as OrderItem[]);
+      setOrder((o.data as unknown as Order | null) ?? null);
+      setItems(((i.data ?? []) as unknown) as OrderItem[]);
       setLoading(false);
     }
     load();
     const ch = supabase
       .channel(`order-${orderId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` }, (p) => setOrder(p.new as Order))
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "order_items", filter: `order_id=eq.${orderId}` }, load)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` }, (p) => setOrder(p.new as unknown as Order))
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items", filter: `order_id=eq.${orderId}` }, load)
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
   }, [orderId]);
@@ -53,7 +54,7 @@ function StatusPage() {
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   if (!order) return <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Order not found</p></div>;
 
-  const stepIdx = STEPS.findIndex((s) => s.key === order.status);
+  const stepIdx = Math.max(0, STEPS.findIndex((s) => s.key === order.status));
   const placed = new Date(order.created_at);
   const minutes = Math.max(5, items.reduce((n, i) => n + i.quantity, 0) * 2 + 8);
 
@@ -71,9 +72,14 @@ function StatusPage() {
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
         <section className="rounded-3xl bg-card p-8 text-center shadow-elegant">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Order Number</p>
-          <p className="mt-1 font-display text-6xl">#{order.order_number}</p>
+          <p className="mt-1 font-display text-6xl font-ui">#{order.order_number}</p>
           <p className="mt-2 text-sm text-muted-foreground">Placed {placed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
-          {order.status !== "served" && order.status !== "cancelled" && (
+          {order.status === "new" && (
+            <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-700">
+              <BellRing className="h-3 w-3 animate-pulse" /> Waiting for café to accept
+            </p>
+          )}
+          {(order.status === "accepted" || order.status === "preparing" || order.status === "ready") && (
             <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs">
               <Clock className="h-3 w-3" /> Estimated ~{minutes} min
             </p>
@@ -85,7 +91,7 @@ function StatusPage() {
 
         <section className="rounded-3xl bg-card p-6 shadow-card">
           <h2 className="mb-4 font-display text-lg">Progress</h2>
-          <ol className="grid grid-cols-4 gap-2">
+          <ol className="grid grid-cols-5 gap-2">
             {STEPS.map((s, idx) => {
               const done = idx <= stepIdx;
               const current = idx === stepIdx;
@@ -107,16 +113,17 @@ function StatusPage() {
             {items.map((it) => (
               <li key={it.id} className="flex items-start justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="font-medium">{it.quantity}× {it.name}</p>
+                  <p className="font-medium font-ui">{it.quantity}× {it.name}</p>
                   {it.special_instructions && <p className="mt-0.5 text-xs italic text-muted-foreground">"{it.special_instructions}"</p>}
                 </div>
-                <p className="text-sm font-semibold">₹{Number(it.line_total).toFixed(0)}</p>
+                <p className="text-sm font-semibold font-ui">₹{Number(it.line_total).toFixed(2)}</p>
               </li>
             ))}
           </ul>
-          <dl className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+          <dl className="mt-4 space-y-1 border-t border-border pt-4 text-sm font-ui">
             <div className="flex justify-between"><dt>Subtotal</dt><dd>₹{Number(order.subtotal).toFixed(2)}</dd></div>
-            <div className="flex justify-between text-muted-foreground"><dt>GST</dt><dd>₹{Number(order.gst_amount).toFixed(2)}</dd></div>
+            <div className="flex justify-between text-muted-foreground"><dt>CGST (2.5%)</dt><dd>₹{Number(order.cgst_amount).toFixed(2)}</dd></div>
+            <div className="flex justify-between text-muted-foreground"><dt>SGST (2.5%)</dt><dd>₹{Number(order.sgst_amount).toFixed(2)}</dd></div>
             <div className="flex justify-between border-t border-border pt-2 font-display text-xl"><dt>Total</dt><dd>₹{Number(order.total).toFixed(2)}</dd></div>
           </dl>
         </section>

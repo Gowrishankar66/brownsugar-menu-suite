@@ -1,14 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Bell, ChefHat, Clock, LogOut, Loader2 } from "lucide-react";
+import { Bell, ChefHat, CheckCircle2, Clock, LogOut, Loader2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Order, OrderItem, OrderStatus } from "@/lib/menu-types";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { playNotify } from "@/lib/notify-sound";
+import { loadNotifySettings, playNotify, startRinging, stopRinging } from "@/lib/notify-sound";
 import { NotificationSettings } from "@/components/admin/NotificationSettings";
+import { AmendOrderDialog } from "@/components/admin/AmendOrderDialog";
+import { AmendmentHistory } from "@/components/admin/AmendmentHistory";
+import { setOrderStatus as setStatusOp } from "@/lib/order-ops";
 
 export const Route = createFileRoute("/kitchen")({
   component: KitchenPage,
@@ -56,7 +59,7 @@ function KitchenPage() {
   return <Kitchen />;
 }
 
-type Sort = "oldest" | "newest" | "value";
+type Sort = "oldest" | "newest";
 
 function Kitchen() {
   const [orders, setOrders] = useState<(Order & { items: OrderItem[] })[]>([]);
@@ -70,15 +73,15 @@ function Kitchen() {
     const { data: os } = await supabase
       .from("orders")
       .select("*")
-      .in("status", ["received", "preparing", "ready"])
+      .in("status", ["new", "accepted", "preparing", "ready"])
       .order("created_at", { ascending: true });
     const ids = (os ?? []).map((o) => o.id);
     let its: OrderItem[] = [];
     if (ids.length) {
       const { data } = await supabase.from("order_items").select("*").in("order_id", ids);
-      its = (data ?? []) as OrderItem[];
+      its = (data ?? []) as unknown as OrderItem[];
     }
-    const grouped = (os ?? []).map((o) => ({ ...(o as Order), items: its.filter((i) => i.order_id === o.id) }));
+    const grouped = (os ?? []).map((o) => ({ ...(o as unknown as Order), items: its.filter((i) => i.order_id === o.id) }));
     grouped.forEach((o) => seenIds.current.add(o.id));
     initialised.current = true;
     setOrders(grouped);
@@ -110,15 +113,24 @@ function Kitchen() {
         if (o.status === "cancelled") playNotify("cancelled");
         load();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
+
+  // Continuous ringer for unaccepted orders.
+  useEffect(() => {
+    const s = loadNotifySettings();
+    const hasNew = orders.some((o) => o.status === "new");
+    if (s.enabled && s.mode === "continuous" && hasNew) startRinging(s);
+    else stopRinging();
+    return () => { stopRinging(); };
+  }, [orders]);
 
   const sorted = useMemo(() => {
     const a = [...orders];
     if (sort === "oldest") a.sort((x, y) => +new Date(x.created_at) - +new Date(y.created_at));
     if (sort === "newest") a.sort((x, y) => +new Date(y.created_at) - +new Date(x.created_at));
-    if (sort === "value") a.sort((x, y) => Number(y.total) - Number(x.total));
     return a;
   }, [orders, sort]);
 
@@ -139,9 +151,9 @@ function Kitchen() {
               <SelectContent>
                 <SelectItem value="oldest">Oldest first</SelectItem>
                 <SelectItem value="newest">Newest first</SelectItem>
-                <SelectItem value="value">Highest value</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" size="sm" className="rounded-full" onClick={stopRinging}>Silence</Button>
             <NotificationSettings />
             <a href="/admin"><Button variant="outline" size="sm" className="rounded-full">Admin</Button></a>
             <Button variant="outline" size="sm" onClick={() => supabase.auth.signOut()} className="rounded-full"><LogOut className="mr-1 h-3 w-3" /> Sign out</Button>
@@ -168,18 +180,20 @@ function Kitchen() {
   );
 }
 
-const NEXT: Record<OrderStatus, { next: OrderStatus | null; label: string }> = {
-  received: { next: "preparing", label: "Start Preparing" },
+const NEXT: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
+  new: { next: "accepted", label: "Accept Order" },
+  accepted: { next: "preparing", label: "Start Preparing" },
   preparing: { next: "ready", label: "Mark Ready" },
   ready: { next: "served", label: "Mark Served" },
-  served: { next: null, label: "" },
-  cancelled: { next: null, label: "" },
+  served: { next: "completed", label: "Mark Completed" },
 };
 const STATUS_TONE: Record<OrderStatus, string> = {
-  received: "bg-blue-500/10 text-blue-700 border-blue-500/30",
+  new: "bg-rose-500 text-white",
+  accepted: "bg-blue-500/10 text-blue-700 border-blue-500/30",
   preparing: "bg-amber-500/10 text-amber-700 border-amber-500/30",
   ready: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
-  served: "bg-muted text-muted-foreground border-border",
+  served: "bg-secondary text-foreground border-border",
+  completed: "bg-muted text-muted-foreground border-border",
   cancelled: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
@@ -187,16 +201,19 @@ function OrderCard({ order, flash }: { order: Order & { items: OrderItem[] }; fl
   const placed = new Date(order.created_at);
   const mins = Math.floor((Date.now() - placed.getTime()) / 60000);
   const next = NEXT[order.status];
+  const [showHistory, setShowHistory] = useState(false);
   async function advance() {
-    if (!next.next) return;
-    const { error } = await supabase.from("orders").update({ status: next.next }).eq("id", order.id);
-    if (error) toast.error(error.message);
-    else toast.success(`Order #${order.order_number} → ${next.next}`);
+    if (!next) return;
+    try {
+      await setStatusOp(order.id, next.next, "kitchen", order.status);
+      toast.success(`Order #${order.order_number} → ${next.next}`);
+    } catch (e) { toast.error((e as Error).message); }
   }
   return (
     <article className={cn(
       "rounded-2xl border-2 bg-card p-4 shadow-card transition-smooth",
-      mins > 15 && order.status !== "ready" ? "border-rose-400/60" : "border-transparent",
+      order.status === "new" ? "border-rose-400/80 ring-2 ring-rose-400/60" : "border-transparent",
+      mins > 15 && order.status !== "ready" && order.status !== "new" ? "border-rose-400/60" : "",
       flash && "flash-new ring-2 ring-primary",
     )}>
       <header className="flex items-start justify-between">
@@ -204,28 +221,55 @@ function OrderCard({ order, flash }: { order: Order & { items: OrderItem[] }; fl
           <p className="font-ui text-3xl font-bold leading-none">#{order.order_number}</p>
           <p className="mt-1 text-xs text-muted-foreground font-ui">Table {order.table_number} · <Clock className="inline h-3 w-3" /> {mins}m ago</p>
         </div>
-        <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest font-ui", STATUS_TONE[order.status])}>{order.status}</span>
+        <div className="flex flex-col items-end gap-1">
+          {order.status === "new" && <span className="rounded-full bg-rose-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">New Order</span>}
+          <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest font-ui", STATUS_TONE[order.status])}>{order.status}</span>
+        </div>
       </header>
+
       <ul className="my-4 space-y-1.5 text-sm">
         {order.items.map((it) => (
           <li key={it.id}>
-            <div className="flex justify-between gap-2">
-              <span className="font-ui"><span className="font-bold">{it.quantity}×</span> {it.name}</span>
-              <span className="text-muted-foreground font-ui">₹{Number(it.line_total).toFixed(0)}</span>
+            <div className="font-ui">
+              <span className="font-bold">{it.quantity}×</span> {it.name}
             </div>
             {it.special_instructions && <p className="ml-5 text-xs italic text-amber-700">⚠ {it.special_instructions}</p>}
           </li>
         ))}
       </ul>
+
       {order.notes && <p className="rounded-xl bg-amber-500/10 p-2 text-xs italic text-amber-800">Note: {order.notes}</p>}
-      <footer className="mt-3 flex items-center justify-between border-t border-border pt-3">
-        <p className="font-ui text-base font-semibold">₹{Number(order.total).toFixed(0)}</p>
-        {next.next && (
-          <Button size="sm" onClick={advance} className="rounded-full bg-primary text-primary-foreground hover:opacity-90">{next.label}</Button>
+
+      <footer className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+        <div className="flex items-center gap-1">
+          <AmendOrderDialog
+            orderId={order.id}
+            orderNumber={order.order_number}
+            role="kitchen"
+            initialNote={order.notes}
+            hidePrices
+            trigger={<Button size="sm" variant="outline" className="h-8 rounded-full text-xs"><Pencil className="mr-1 h-3 w-3" /> Amend</Button>}
+          />
+          <Button size="sm" variant="ghost" className="h-8 rounded-full text-xs" onClick={() => setShowHistory((v) => !v)}>
+            {showHistory ? "Hide history" : "History"}
+          </Button>
+        </div>
+        {next && (
+          <Button size="sm" onClick={advance} className={cn(
+            "rounded-full text-primary-foreground hover:opacity-90",
+            order.status === "new" ? "bg-rose-500 hover:bg-rose-600" : "bg-primary",
+          )}>
+            {order.status === "new" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+            {next.label}
+          </Button>
         )}
       </footer>
+
+      {showHistory && (
+        <div className="mt-3 border-t border-border pt-3">
+          <AmendmentHistory orderId={order.id} hidePrices />
+        </div>
+      )}
     </article>
   );
 }
-
-
