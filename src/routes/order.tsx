@@ -160,7 +160,7 @@ function OrderPage() {
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div>
                       <p className="text-sm font-semibold font-ui">₹{Number(item.price).toFixed(0)}</p>
-                      <p className="text-[10px] text-muted-foreground font-ui">+{item.gst_percentage}% GST</p>
+                      <p className="text-[10px] text-muted-foreground font-ui">+5% GST</p>
                     </div>
                     {disabled ? (
                       <span className="rounded-full bg-destructive/10 px-3 py-1 text-[10px] font-semibold uppercase text-destructive">Sold out</span>
@@ -284,7 +284,7 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{l.name}</p>
-                    <p className="text-xs text-muted-foreground">₹{l.unit_price.toFixed(0)} × {l.quantity} · +{l.gst_percentage}% GST</p>
+                    <p className="text-xs text-muted-foreground font-ui">₹{l.unit_price.toFixed(0)} × {l.quantity}</p>
                   </div>
                   <p className="text-sm font-semibold">₹{lineTotals(l).total.toFixed(0)}</p>
                   <button onClick={() => remove(table, l.menu_item_id)} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
