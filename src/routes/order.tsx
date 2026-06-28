@@ -103,7 +103,7 @@ function OrderPage() {
     );
   }
 
-  const { total, subtotal, gst } = cartTotals(cart);
+  // (totals are computed inside CartSheet for order insert; not surfaced in customer UI)
   const cartCount = cart.reduce((n, l) => n + l.quantity, 0);
 
   return (
