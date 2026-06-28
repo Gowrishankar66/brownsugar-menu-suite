@@ -195,6 +195,7 @@ export function OrdersPanel() {
         <Button variant="outline" onClick={stopRinging} className="h-9 rounded-full" title="Silence ringer">
           <BellRing className="mr-1.5 h-4 w-4" /> Silence
         </Button>
+        <CreateManualOrderDialog onCreated={refresh} />
         <Button variant="outline" onClick={exportCSV} className="h-9 rounded-full"><Download className="mr-1.5 h-4 w-4" /> CSV</Button>
       </Card>
 
