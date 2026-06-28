@@ -22,6 +22,7 @@ type OrderRow = {
   order_date: string;
   table_number: number;
   status: OrderStatus;
+  source?: "qr" | "manual" | null;
   subtotal: number;
   gst_amount: number;
   cgst_amount: number;
