@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Volume2, VolumeX } from "lucide-react";
+import { Bell, Play, Volume2, VolumeX } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,19 +11,23 @@ import {
   playNotify,
   stopRinging,
   startRinging,
+  previewSound,
+  SOUND_PRESETS,
   type NotifySettings,
 } from "@/lib/notify-sound";
 
 export function NotificationSettings() {
-  const [s, setS] = useState<NotifySettings>({ enabled: true, volume: 0.7, mode: "continuous" });
+  const [s, setS] = useState<NotifySettings>(() => loadNotifySettings());
 
   useEffect(() => { setS(loadNotifySettings()); }, []);
 
   function update(next: NotifySettings) {
     setS(next);
     saveNotifySettings(next);
-    if (!next.enabled || next.volume <= 0) stopRinging();
+    if (!next.enabled || next.volume <= 0 || next.mode === "mute") stopRinging();
   }
+
+  const off = !s.enabled || s.volume <= 0 || s.mode === "mute";
 
   return (
     <Popover>
@@ -33,19 +37,49 @@ export function NotificationSettings() {
           size="icon"
           className="rounded-full"
           aria-label="Notification settings"
-          title={s.enabled ? "Notification sound on" : "Notification sound off"}
+          title={off ? "Notification sound off" : `Sound: ${SOUND_PRESETS.find(p => p.id === s.sound)?.label}`}
         >
-          {s.enabled && s.volume > 0 ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          {off ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 rounded-2xl">
+      <PopoverContent className="w-80 rounded-2xl">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Order alerts</p>
-              <p className="text-[11px] text-muted-foreground">Telephone ring on new orders</p>
+              <p className="text-[11px] text-muted-foreground">Plays on Admin &amp; Kitchen dashboards</p>
             </div>
             <Switch checked={s.enabled} onCheckedChange={(v) => update({ ...s, enabled: v })} />
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs text-muted-foreground">Notification sound</p>
+            <div className="flex gap-2">
+              <Select value={s.sound} onValueChange={(v) => update({ ...s, sound: v as NotifySettings["sound"] })} disabled={!s.enabled}>
+                <SelectTrigger className="h-9 flex-1 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SOUND_PRESETS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <div className="flex flex-col">
+                        <span>{p.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{p.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-9 w-9 rounded-xl"
+                onClick={() => previewSound(s.sound, s.volume || 0.7)}
+                aria-label="Preview sound"
+                title="Preview"
+              >
+                <Play className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
 
           <div>
@@ -54,7 +88,8 @@ export function NotificationSettings() {
               <SelectTrigger className="h-9 rounded-xl"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="once">Ring once</SelectItem>
-                <SelectItem value="continuous">Ring until accepted</SelectItem>
+                <SelectItem value="continuous">Ring until accepted (recommended)</SelectItem>
+                <SelectItem value="mute">Mute</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -75,24 +110,10 @@ export function NotificationSettings() {
           </div>
 
           <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="flex-1 rounded-full"
-              onClick={() => playNotify("new", s)}
-              disabled={!s.enabled}
-            >
+            <Button type="button" size="sm" variant="outline" className="flex-1 rounded-full" onClick={() => playNotify("new", s)} disabled={off}>
               <Bell className="mr-1 h-3 w-3" /> Test
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="flex-1 rounded-full"
-              onClick={() => { startRinging(s); window.setTimeout(stopRinging, 5000); }}
-              disabled={!s.enabled}
-            >
+            <Button type="button" size="sm" variant="outline" className="flex-1 rounded-full" onClick={() => { startRinging(s); window.setTimeout(stopRinging, 5000); }} disabled={off}>
               Ring 5s
             </Button>
           </div>
