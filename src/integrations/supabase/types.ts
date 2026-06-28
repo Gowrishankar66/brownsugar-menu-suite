@@ -208,6 +208,7 @@ export type Database = {
           order_date: string
           order_number: string
           sgst_amount: number
+          source: string
           status: string
           subtotal: number
           table_id: string | null
@@ -227,6 +228,7 @@ export type Database = {
           order_date?: string
           order_number: string
           sgst_amount?: number
+          source?: string
           status?: string
           subtotal?: number
           table_id?: string | null
@@ -246,6 +248,7 @@ export type Database = {
           order_date?: string
           order_number?: string
           sgst_amount?: number
+          source?: string
           status?: string
           subtotal?: number
           table_id?: string | null
