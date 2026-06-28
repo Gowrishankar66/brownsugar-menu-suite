@@ -11,6 +11,7 @@ import { printBill, type BillItem } from "@/lib/print-bill";
 import { setOrderStatus as setStatusOp } from "@/lib/order-ops";
 import { AmendOrderDialog } from "./AmendOrderDialog";
 import { AmendmentHistory } from "./AmendmentHistory";
+import { CreateManualOrderDialog } from "./CreateManualOrderDialog";
 import { startRinging, stopRinging, loadNotifySettings, playNotify } from "@/lib/notify-sound";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/menu-types";
