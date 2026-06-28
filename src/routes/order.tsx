@@ -183,8 +183,8 @@ function OrderPage() {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 p-3 backdrop-blur">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-ui">{cartCount} item{cartCount > 1 ? "s" : ""} · ₹{subtotal.toFixed(0)} + ₹{gst.toFixed(0)} GST</p>
-              <p className="font-ui text-xl font-bold">₹{total.toFixed(0)}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-ui">Your selection</p>
+              <p className="font-ui text-xl font-bold">{cartCount} item{cartCount > 1 ? "s" : ""}</p>
             </div>
             <Button onClick={() => setCartOpen(true)} className="rounded-full bg-primary px-6 text-primary-foreground hover:opacity-90">Review order</Button>
           </div>
