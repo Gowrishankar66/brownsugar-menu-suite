@@ -283,10 +283,9 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{l.name}</p>
-                    <p className="text-xs text-muted-foreground font-ui">₹{l.unit_price.toFixed(0)} × {l.quantity}</p>
+                    <p className="text-xs text-muted-foreground font-ui">Qty {l.quantity}</p>
                   </div>
-                  <p className="text-sm font-semibold">₹{lineTotals(l).total.toFixed(0)}</p>
-                  <button onClick={() => remove(table, l.menu_item_id)} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
+                  <button onClick={() => remove(table, l.menu_item_id)} className="text-muted-foreground hover:text-destructive" aria-label="Remove item"><X className="h-4 w-4" /></button>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <QtyStepper qty={l.quantity} onChange={(q) => setQty(table, l.menu_item_id, q)} />
@@ -303,16 +302,14 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
       {cart.length > 0 && (
         <div className="border-t border-border pt-4">
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes for the kitchen (optional)" className="mb-3 min-h-[60px] text-sm" maxLength={300} />
-          <dl className="space-y-1 text-sm font-ui">
-            <div className="flex justify-between"><dt>Subtotal</dt><dd>₹{t.subtotal.toFixed(2)}</dd></div>
-            <div className="flex justify-between text-muted-foreground"><dt>CGST (2.5%)</dt><dd>₹{t.cgst.toFixed(2)}</dd></div>
-            <div className="flex justify-between text-muted-foreground"><dt>SGST (2.5%)</dt><dd>₹{t.sgst.toFixed(2)}</dd></div>
-            <div className="flex justify-between border-t border-border pt-2 font-display text-xl"><dt>Total</dt><dd>₹{t.total.toFixed(2)}</dd></div>
-          </dl>
+          <div className="flex items-baseline justify-between rounded-2xl bg-secondary/60 px-4 py-3">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">Total items</span>
+            <span className="font-ui text-2xl font-bold">{cart.reduce((n, l) => n + l.quantity, 0)}</span>
+          </div>
           <div className="mt-4 flex gap-2">
             <Button variant="outline" onClick={() => clear(table)} className="rounded-full"><Trash2 className="mr-1 h-4 w-4" /> Clear</Button>
             <Button onClick={place} disabled={busy} className="flex-1 rounded-full bg-primary text-primary-foreground hover:opacity-90">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Place Order · ₹${t.total.toFixed(0)}`}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Place Order`}
             </Button>
           </div>
           <p className="mt-3 text-center text-[11px] text-muted-foreground">Pay at the counter after your meal.</p>
