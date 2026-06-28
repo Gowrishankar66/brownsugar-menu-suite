@@ -227,6 +227,18 @@ export function OrdersPanel() {
                     {o.status === "new" && (
                       <Badge className="bg-rose-500 font-ui uppercase tracking-wider text-[10px] text-white">NEW ORDER</Badge>
                     )}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-ui uppercase tracking-wider text-[10px]",
+                        o.source === "manual"
+                          ? "border-violet-500/40 bg-violet-500/10 text-violet-700"
+                          : "border-sky-500/40 bg-sky-500/10 text-sky-700",
+                      )}
+                      title={o.source === "manual" ? "Created manually by admin" : "Placed by guest via QR code"}
+                    >
+                      {o.source === "manual" ? "Manual" : "QR"}
+                    </Badge>
                     <Badge className={cn("font-ui uppercase tracking-wider text-[10px]", STATUS_TONE[o.status])}>{o.status}</Badge>
                     <Badge variant={isPaid ? "default" : "outline"} className="font-ui uppercase tracking-wider text-[10px]">{isPaid ? "paid" : "unpaid"}</Badge>
                     <p className="font-ui text-lg font-semibold">₹{Number(o.total).toFixed(0)}</p>
