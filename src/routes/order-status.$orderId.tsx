@@ -108,7 +108,10 @@ function StatusPage() {
         </section>
 
         <section className="rounded-3xl bg-card p-6 shadow-card">
-          <h2 className="mb-4 font-display text-lg">Your items</h2>
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="font-display text-lg">Your items</h2>
+            <span className="text-xs text-muted-foreground font-ui">{items.reduce((n, i) => n + i.quantity, 0)} total</span>
+          </div>
           <ul className="divide-y divide-border">
             {items.map((it) => (
               <li key={it.id} className="flex items-start justify-between gap-3 py-3">
@@ -116,16 +119,12 @@ function StatusPage() {
                   <p className="font-medium font-ui">{it.quantity}× {it.name}</p>
                   {it.special_instructions && <p className="mt-0.5 text-xs italic text-muted-foreground">"{it.special_instructions}"</p>}
                 </div>
-                <p className="text-sm font-semibold font-ui">₹{Number(it.line_total).toFixed(2)}</p>
               </li>
             ))}
           </ul>
-          <dl className="mt-4 space-y-1 border-t border-border pt-4 text-sm font-ui">
-            <div className="flex justify-between"><dt>Subtotal</dt><dd>₹{Number(order.subtotal).toFixed(2)}</dd></div>
-            <div className="flex justify-between text-muted-foreground"><dt>CGST (2.5%)</dt><dd>₹{Number(order.cgst_amount).toFixed(2)}</dd></div>
-            <div className="flex justify-between text-muted-foreground"><dt>SGST (2.5%)</dt><dd>₹{Number(order.sgst_amount).toFixed(2)}</dd></div>
-            <div className="flex justify-between border-t border-border pt-2 font-display text-xl"><dt>Total</dt><dd>₹{Number(order.total).toFixed(2)}</dd></div>
-          </dl>
+          <p className="mt-4 rounded-2xl bg-secondary/60 p-3 text-center text-xs text-muted-foreground">
+            Your final bill will be shared at the counter when you're ready to pay.
+          </p>
         </section>
 
         {table && (
