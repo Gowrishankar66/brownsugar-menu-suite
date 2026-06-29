@@ -29,6 +29,8 @@ function OrderPage() {
   const [table, setTable] = useState<CafeTable | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [coOccurrence, setCoOccurrence] = useState<CoOccurrence>(new Map());
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState<string | "all">("all");
   const [query, setQuery] = useState("");
@@ -41,15 +43,20 @@ function OrderPage() {
     let mounted = true;
     (async () => {
       if (!tableNum) { setLoading(false); return; }
-      const [t, c, i] = await Promise.all([
+      const sinceISO = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const [t, c, i, p, oi] = await Promise.all([
         supabase.from("tables").select("*").eq("table_number", tableNum).maybeSingle(),
         supabase.from("categories").select("*").order("sort_order"),
         supabase.from("menu_items").select("*").order("sort_order"),
+        supabase.from("promotions" as never).select("*").eq("active", true),
+        supabase.from("order_items").select("order_id, menu_item_id").gte("created_at", sinceISO).limit(2000),
       ]);
       if (!mounted) return;
       setTable((t.data as CafeTable | null) ?? null);
       setCategories((c.data ?? []) as Category[]);
       setItems((i.data ?? []) as MenuItem[]);
+      setPromotions((((p as { data?: Promotion[] }).data ?? []) as Promotion[]));
+      setCoOccurrence(buildCoOccurrence(((oi.data ?? []) as Array<{ order_id: string; menu_item_id: string | null }>)));
       setLoading(false);
     })();
     const ch = supabase
@@ -57,6 +64,10 @@ function OrderPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "menu_items" }, async () => {
         const { data } = await supabase.from("menu_items").select("*").order("sort_order");
         setItems((data ?? []) as MenuItem[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "promotions" }, async () => {
+        const { data } = await supabase.from("promotions" as never).select("*").eq("active", true);
+        setPromotions((((data as unknown) as Promotion[]) ?? []) as Promotion[]);
       })
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
