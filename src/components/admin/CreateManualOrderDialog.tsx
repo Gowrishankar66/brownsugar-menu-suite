@@ -175,7 +175,7 @@ export function CreateManualOrderDialog({ onCreated }: { onCreated?: () => void 
                 <SelectTrigger className="mt-1 h-9 rounded-xl"><SelectValue placeholder="Select table" /></SelectTrigger>
                 <SelectContent>
                   {tables.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>Table {t.table_number}{t.label ? ` · ${t.label}` : ""}</SelectItem>
+                    <SelectItem key={t.id} value={t.id}>Table {t.table_number}{t.name ? ` · ${t.name}` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
