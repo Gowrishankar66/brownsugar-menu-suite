@@ -14,7 +14,7 @@ type MenuItemRow = {
   id: string; name: string; sku: string | null;
   price: number; category_id: string | null; available: boolean;
 };
-type TableRow = { id: string; table_number: number; label: string | null };
+type TableRow = { id: string; table_number: number; name: string | null; active: boolean };
 type Line = { menu_item_id: string; name: string; sku: string | null; unit_price: number; quantity: number; special_instructions?: string };
 
 export function CreateManualOrderDialog({ onCreated }: { onCreated?: () => void }) {
@@ -28,18 +28,34 @@ export function CreateManualOrderDialog({ onCreated }: { onCreated?: () => void 
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  async function loadTables() {
+    const { data } = await supabase
+      .from("tables")
+      .select("id, table_number, name, active")
+      .eq("active", true)
+      .order("table_number");
+    setTables(((data ?? []) as unknown) as TableRow[]);
+  }
+
   useEffect(() => {
     if (!open) return;
     setLoading(true);
     (async () => {
-      const [t, m] = await Promise.all([
-        supabase.from("tables").select("id, table_number, label").order("table_number"),
-        supabase.from("menu_items").select("id, name, sku, price, category_id, available").order("sort_order"),
-      ]);
-      setTables(((t.data ?? []) as unknown) as TableRow[]);
+      const m = await supabase
+        .from("menu_items")
+        .select("id, name, sku, price, category_id, available")
+        .order("sort_order");
       setItems(((m.data ?? []) as unknown) as MenuItemRow[]);
+      await loadTables();
       setLoading(false);
     })();
+
+    // Stay in sync with Tables & QR module
+    const ch = supabase
+      .channel("manual-order-tables")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tables" }, () => { loadTables(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [open]);
 
   function reset() {
