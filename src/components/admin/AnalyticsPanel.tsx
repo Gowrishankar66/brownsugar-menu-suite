@@ -32,6 +32,7 @@ function rangeStartISO(days: number) {
 export function AnalyticsPanel() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<OrderItem[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(7);
 
@@ -40,15 +41,17 @@ export function AnalyticsPanel() {
     (async () => {
       setLoading(true);
       const since = rangeStartISO(days);
-      const [oRes, iRes] = await Promise.all([
+      const [oRes, iRes, pRes] = await Promise.all([
         supabase.from("orders").select("*").gte("order_date", since).neq("status", "cancelled"),
         supabase.from("order_items").select("order_id,name,quantity,line_total"),
+        supabase.from("promotions" as never).select("*").order("usage_count", { ascending: false }),
       ]);
       if (cancelled) return;
       const os = (oRes.data ?? []) as OrderRow[];
       const ids = new Set(os.map((o) => o.id));
       setOrders(os);
       setItems(((iRes.data ?? []) as OrderItem[]).filter((it) => ids.has(it.order_id)));
+      setPromotions((((pRes as { data?: Promotion[] }).data ?? []) as Promotion[]));
       setLoading(false);
     })();
     return () => { cancelled = true; };
