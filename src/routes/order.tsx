@@ -137,7 +137,15 @@ function OrderPage() {
                 )}
               </Button>
             </SheetTrigger>
-            <CartSheet table={tableKey} tableNumberInt={tableNum} tableId={table.id} onPlaced={(id) => { setCartOpen(false); navigate({ to: "/order-status/$orderId", params: { orderId: id }, search: { table: tableNum } }); }} />
+            <CartSheet
+              table={tableKey}
+              tableNumberInt={tableNum}
+              tableId={table.id}
+              menuItems={items}
+              promotions={promotions}
+              coOccurrence={coOccurrence}
+              onPlaced={(id) => { setCartOpen(false); navigate({ to: "/order-status/$orderId", params: { orderId: id }, search: { table: tableNum } }); }}
+            />
           </Sheet>
         </div>
         <div className="mx-auto max-w-3xl overflow-x-auto px-4 pb-3">
