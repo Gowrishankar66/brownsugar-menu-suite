@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { OrdersPanel } from "@/components/admin/OrdersPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
+import { PromotionsPanel } from "@/components/admin/PromotionsPanel";
 import { NotificationSettings } from "@/components/admin/NotificationSettings";
 import { playNotify, startRinging, stopRinging, loadNotifySettings } from "@/lib/notify-sound";
 
