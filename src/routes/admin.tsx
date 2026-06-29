@@ -272,6 +272,7 @@ function Dashboard() {
             <TabsTrigger value="categories" className="rounded-full">Categories</TabsTrigger>
             <TabsTrigger value="tables" className="rounded-full">Tables &amp; QR</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-full">Orders</TabsTrigger>
+            <TabsTrigger value="promotions" className="rounded-full">Promotions</TabsTrigger>
             <TabsTrigger value="analytics" className="rounded-full">Analytics</TabsTrigger>
           </TabsList>
 
@@ -303,6 +304,10 @@ function Dashboard() {
 
           <TabsContent value="orders" className="mt-4">
             <OrdersPanel />
+          </TabsContent>
+
+          <TabsContent value="promotions" className="mt-4">
+            <PromotionsPanel />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-4">
