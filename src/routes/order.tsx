@@ -225,16 +225,56 @@ function QtyStepper({ qty, onChange }: { qty: number; onChange: (n: number) => v
   );
 }
 
-function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string; tableNumberInt: number; tableId: string; onPlaced: (orderId: string) => void }) {
+function CartSheet({
+  table, tableNumberInt, tableId, onPlaced,
+  menuItems, promotions, coOccurrence,
+}: {
+  table: string;
+  tableNumberInt: number;
+  tableId: string;
+  onPlaced: (orderId: string) => void;
+  menuItems: MenuItem[];
+  promotions: Promotion[];
+  coOccurrence: CoOccurrence;
+}) {
   const cart = useCart(selectCart(table));
   const setQty = useCart((s) => s.setQty);
   const setInstructions = useCart((s) => s.setInstructions);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
   const setLastOrder = useCart((s) => s.setLastOrder);
+  const add = useCart((s) => s.add);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const t = cartTotals(cart);
+
+  const recommendations = useMemo(
+    () => recommend({ cart, items: menuItems, co: coOccurrence, limit: 4 }),
+    [cart, menuItems, coOccurrence]
+  );
+  const suggestions = useMemo(
+    () => evaluatePromotions({ cart, items: menuItems, promotions }),
+    [cart, menuItems, promotions]
+  );
+  const viewedRef = useState(() => new Set<string>())[0];
+
+  useEffect(() => {
+    // Track unique offer impressions
+    suggestions.forEach((s) => {
+      if (!viewedRef.has(s.promotion.id)) {
+        viewedRef.add(s.promotion.id);
+        supabase.rpc("increment_promotion_views" as never, { p_id: s.promotion.id } as never).then(() => {});
+      }
+    });
+  }, [suggestions, viewedRef]);
+
+  function quickAdd(item: MenuItem) {
+    add(table, {
+      menu_item_id: item.id, name: item.name, sku: item.sku,
+      unit_price: Number(item.price), gst_percentage: Number(item.gst_percentage),
+      image_url: item.image_url,
+    });
+  }
 
   async function place() {
     if (cart.length === 0) return;
@@ -258,7 +298,7 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
         .select()
         .single();
       if (error) throw error;
-      const itemsPayload = cart.map((l) => {
+      const itemsPayload = cart.map((l: CartLine) => {
         const lt = lineTotals(l);
         return {
           order_id: order.id,
@@ -278,6 +318,15 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
       });
       const { error: ie } = await supabase.from("order_items").insert(itemsPayload);
       if (ie) throw ie;
+      // Record redemptions for any fulfilled promotions
+      for (const s of suggestions) {
+        if (s.fulfilled) {
+          await supabase.rpc(
+            "record_promotion_redemption" as never,
+            { p_id: s.promotion.id, p_order: order.id, p_revenue: s.rewardValue } as never
+          );
+        }
+      }
       setLastOrder(table, order.id);
       clear(table);
       toast.success(`Order #${order.order_number} placed!`);
@@ -317,6 +366,57 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {suggestions.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+              <Gift className="h-3.5 w-3.5" /> Special offer for you
+            </p>
+            <div className="space-y-2">
+              {suggestions.slice(0, 3).map((s) => (
+                <div key={s.promotion.id} className={cn(
+                  "rounded-2xl border p-3",
+                  s.fulfilled ? "border-emerald-300 bg-emerald-50/60" : "border-amber-300 bg-amber-50/60"
+                )}>
+                  <p className="text-sm font-medium leading-tight">{s.message}</p>
+                  {s.promotion.description && <p className="mt-1 text-[11px] text-muted-foreground">{s.promotion.description}</p>}
+                  {s.addItem && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground font-ui">+ ₹{Number(s.addItem.price).toFixed(0)}</p>
+                      <Button size="sm" className="h-7 rounded-full" onClick={() => quickAdd(s.addItem!)}>
+                        <Plus className="mr-1 h-3 w-3" /> Add {s.addItem.name}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {recommendations.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> You may also like
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {recommendations.map((r) => (
+                <div key={r.id} className="rounded-2xl bg-card p-2 shadow-soft">
+                  <div className="aspect-square w-full overflow-hidden rounded-xl bg-muted">
+                    {r.image_url ? <img src={r.image_url} alt={r.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><ImageOff className="h-5 w-5 text-muted-foreground" /></div>}
+                  </div>
+                  <p className="mt-1.5 truncate text-xs font-medium">{r.name}</p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold font-ui">₹{Number(r.price).toFixed(0)}</span>
+                    <Button size="sm" variant="outline" className="h-6 rounded-full px-2 text-[11px]" onClick={() => quickAdd(r)}>
+                      <Plus className="h-3 w-3" /> Add
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
