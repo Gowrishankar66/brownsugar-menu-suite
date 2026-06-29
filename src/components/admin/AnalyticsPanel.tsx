@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Loader2, TrendingUp, ShoppingBag, Receipt, Clock } from "lucide-react";
+import { Loader2, TrendingUp, ShoppingBag, Receipt, Clock, Tag, Eye, CheckCircle2 } from "lucide-react";
+import { PROMO_TYPE_LABELS, type Promotion, isActiveNow } from "@/lib/promotions";
 
 type OrderRow = {
   id: string;
