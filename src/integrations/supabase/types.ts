@@ -266,6 +266,111 @@ export type Database = {
           },
         ]
       }
+      promotion_redemptions: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string | null
+          promotion_id: string
+          revenue_amount: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          promotion_id: string
+          revenue_amount?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          promotion_id?: string
+          revenue_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_redemptions_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotions: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          discount_value: number
+          eligible_category_ids: string[]
+          eligible_item_ids: string[]
+          end_date: string | null
+          id: string
+          max_usage: number | null
+          min_subtotal: number
+          name: string
+          revenue_generated: number
+          reward_category_ids: string[]
+          reward_item_ids: string[]
+          start_date: string | null
+          type: string
+          updated_at: string
+          usage_count: number
+          views_count: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          discount_value?: number
+          eligible_category_ids?: string[]
+          eligible_item_ids?: string[]
+          end_date?: string | null
+          id?: string
+          max_usage?: number | null
+          min_subtotal?: number
+          name: string
+          revenue_generated?: number
+          reward_category_ids?: string[]
+          reward_item_ids?: string[]
+          start_date?: string | null
+          type: string
+          updated_at?: string
+          usage_count?: number
+          views_count?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          discount_value?: number
+          eligible_category_ids?: string[]
+          eligible_item_ids?: string[]
+          end_date?: string | null
+          id?: string
+          max_usage?: number | null
+          min_subtotal?: number
+          name?: string
+          revenue_generated?: number
+          reward_category_ids?: string[]
+          reward_item_ids?: string[]
+          start_date?: string | null
+          type?: string
+          updated_at?: string
+          usage_count?: number
+          views_count?: number
+        }
+        Relationships: []
+      }
       tables: {
         Row: {
           active: boolean
@@ -322,6 +427,11 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_promotion_views: { Args: { p_id: string }; Returns: undefined }
+      record_promotion_redemption: {
+        Args: { p_id: string; p_order: string; p_revenue: number }
+        Returns: undefined
       }
     }
     Enums: {
