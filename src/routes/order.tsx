@@ -2,10 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Minus, Plus, ShoppingCart, Trash2, X, Loader2, MessageSquare, ImageOff } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Trash2, X, Loader2, MessageSquare, ImageOff, Sparkles, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CafeTable, Category, MenuItem } from "@/lib/menu-types";
-import { useCart, selectCart, cartTotals, lineTotals } from "@/lib/cart-store";
+import { useCart, selectCart, cartTotals, lineTotals, type CartLine } from "@/lib/cart-store";
+import { buildCoOccurrence, recommend, type CoOccurrence } from "@/lib/recommendations";
+import { evaluatePromotions, type Promotion, type PromotionSuggestion } from "@/lib/promotions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +29,8 @@ function OrderPage() {
   const [table, setTable] = useState<CafeTable | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [coOccurrence, setCoOccurrence] = useState<CoOccurrence>(new Map());
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState<string | "all">("all");
   const [query, setQuery] = useState("");
@@ -39,15 +43,20 @@ function OrderPage() {
     let mounted = true;
     (async () => {
       if (!tableNum) { setLoading(false); return; }
-      const [t, c, i] = await Promise.all([
+      const sinceISO = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const [t, c, i, p, oi] = await Promise.all([
         supabase.from("tables").select("*").eq("table_number", tableNum).maybeSingle(),
         supabase.from("categories").select("*").order("sort_order"),
         supabase.from("menu_items").select("*").order("sort_order"),
+        supabase.from("promotions" as never).select("*").eq("active", true),
+        supabase.from("order_items").select("order_id, menu_item_id").gte("created_at", sinceISO).limit(2000),
       ]);
       if (!mounted) return;
       setTable((t.data as CafeTable | null) ?? null);
       setCategories((c.data ?? []) as Category[]);
       setItems((i.data ?? []) as MenuItem[]);
+      setPromotions((((p as { data?: Promotion[] }).data ?? []) as Promotion[]));
+      setCoOccurrence(buildCoOccurrence(((oi.data ?? []) as Array<{ order_id: string; menu_item_id: string | null }>)));
       setLoading(false);
     })();
     const ch = supabase
@@ -55,6 +64,10 @@ function OrderPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "menu_items" }, async () => {
         const { data } = await supabase.from("menu_items").select("*").order("sort_order");
         setItems((data ?? []) as MenuItem[]);
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "promotions" }, async () => {
+        const { data } = await supabase.from("promotions" as never).select("*").eq("active", true);
+        setPromotions((((data as unknown) as Promotion[]) ?? []) as Promotion[]);
       })
       .subscribe();
     return () => { mounted = false; supabase.removeChannel(ch); };
@@ -124,7 +137,15 @@ function OrderPage() {
                 )}
               </Button>
             </SheetTrigger>
-            <CartSheet table={tableKey} tableNumberInt={tableNum} tableId={table.id} onPlaced={(id) => { setCartOpen(false); navigate({ to: "/order-status/$orderId", params: { orderId: id }, search: { table: tableNum } }); }} />
+            <CartSheet
+              table={tableKey}
+              tableNumberInt={tableNum}
+              tableId={table.id}
+              menuItems={items}
+              promotions={promotions}
+              coOccurrence={coOccurrence}
+              onPlaced={(id) => { setCartOpen(false); navigate({ to: "/order-status/$orderId", params: { orderId: id }, search: { table: tableNum } }); }}
+            />
           </Sheet>
         </div>
         <div className="mx-auto max-w-3xl overflow-x-auto px-4 pb-3">
@@ -204,16 +225,56 @@ function QtyStepper({ qty, onChange }: { qty: number; onChange: (n: number) => v
   );
 }
 
-function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string; tableNumberInt: number; tableId: string; onPlaced: (orderId: string) => void }) {
+function CartSheet({
+  table, tableNumberInt, tableId, onPlaced,
+  menuItems, promotions, coOccurrence,
+}: {
+  table: string;
+  tableNumberInt: number;
+  tableId: string;
+  onPlaced: (orderId: string) => void;
+  menuItems: MenuItem[];
+  promotions: Promotion[];
+  coOccurrence: CoOccurrence;
+}) {
   const cart = useCart(selectCart(table));
   const setQty = useCart((s) => s.setQty);
   const setInstructions = useCart((s) => s.setInstructions);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
   const setLastOrder = useCart((s) => s.setLastOrder);
+  const add = useCart((s) => s.add);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const t = cartTotals(cart);
+
+  const recommendations = useMemo(
+    () => recommend({ cart, items: menuItems, co: coOccurrence, limit: 4 }),
+    [cart, menuItems, coOccurrence]
+  );
+  const suggestions = useMemo(
+    () => evaluatePromotions({ cart, items: menuItems, promotions }),
+    [cart, menuItems, promotions]
+  );
+  const viewedRef = useState(() => new Set<string>())[0];
+
+  useEffect(() => {
+    // Track unique offer impressions
+    suggestions.forEach((s) => {
+      if (!viewedRef.has(s.promotion.id)) {
+        viewedRef.add(s.promotion.id);
+        supabase.rpc("increment_promotion_views" as never, { p_id: s.promotion.id } as never).then(() => {});
+      }
+    });
+  }, [suggestions, viewedRef]);
+
+  function quickAdd(item: MenuItem) {
+    add(table, {
+      menu_item_id: item.id, name: item.name, sku: item.sku,
+      unit_price: Number(item.price), gst_percentage: Number(item.gst_percentage),
+      image_url: item.image_url,
+    });
+  }
 
   async function place() {
     if (cart.length === 0) return;
@@ -237,7 +298,7 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
         .select()
         .single();
       if (error) throw error;
-      const itemsPayload = cart.map((l) => {
+      const itemsPayload = cart.map((l: CartLine) => {
         const lt = lineTotals(l);
         return {
           order_id: order.id,
@@ -257,6 +318,15 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
       });
       const { error: ie } = await supabase.from("order_items").insert(itemsPayload);
       if (ie) throw ie;
+      // Record redemptions for any fulfilled promotions
+      for (const s of suggestions) {
+        if (s.fulfilled) {
+          await supabase.rpc(
+            "record_promotion_redemption" as never,
+            { p_id: s.promotion.id, p_order: order.id, p_revenue: s.rewardValue } as never
+          );
+        }
+      }
       setLastOrder(table, order.id);
       clear(table);
       toast.success(`Order #${order.order_number} placed!`);
@@ -296,6 +366,57 @@ function CartSheet({ table, tableNumberInt, tableId, onPlaced }: { table: string
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {suggestions.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+              <Gift className="h-3.5 w-3.5" /> Special offer for you
+            </p>
+            <div className="space-y-2">
+              {suggestions.slice(0, 3).map((s) => (
+                <div key={s.promotion.id} className={cn(
+                  "rounded-2xl border p-3",
+                  s.fulfilled ? "border-emerald-300 bg-emerald-50/60" : "border-amber-300 bg-amber-50/60"
+                )}>
+                  <p className="text-sm font-medium leading-tight">{s.message}</p>
+                  {s.promotion.description && <p className="mt-1 text-[11px] text-muted-foreground">{s.promotion.description}</p>}
+                  {s.addItem && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground font-ui">+ ₹{Number(s.addItem.price).toFixed(0)}</p>
+                      <Button size="sm" className="h-7 rounded-full" onClick={() => quickAdd(s.addItem!)}>
+                        <Plus className="mr-1 h-3 w-3" /> Add {s.addItem.name}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {recommendations.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> You may also like
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {recommendations.map((r) => (
+                <div key={r.id} className="rounded-2xl bg-card p-2 shadow-soft">
+                  <div className="aspect-square w-full overflow-hidden rounded-xl bg-muted">
+                    {r.image_url ? <img src={r.image_url} alt={r.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><ImageOff className="h-5 w-5 text-muted-foreground" /></div>}
+                  </div>
+                  <p className="mt-1.5 truncate text-xs font-medium">{r.name}</p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold font-ui">₹{Number(r.price).toFixed(0)}</span>
+                    <Button size="sm" variant="outline" className="h-6 rounded-full px-2 text-[11px]" onClick={() => quickAdd(r)}>
+                      <Plus className="h-3 w-3" /> Add
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
