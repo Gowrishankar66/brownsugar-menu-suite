@@ -142,7 +142,62 @@ export function AnalyticsPanel() {
           ))}
         </div>
       </Card>
+
+      <PromotionAnalyticsCard promotions={promotions} />
     </div>
+  );
+}
+
+function PromotionAnalyticsCard({ promotions }: { promotions: Promotion[] }) {
+  const active = promotions.filter((p) => isActiveNow(p));
+  const expired = promotions.filter((p) => !isActiveNow(p));
+  const top = [...promotions].sort((a, b) => b.usage_count - a.usage_count).slice(0, 5);
+  const totalViews = promotions.reduce((n, p) => n + p.views_count, 0);
+  const totalRedemptions = promotions.reduce((n, p) => n + p.usage_count, 0);
+  const totalRev = promotions.reduce((n, p) => n + Number(p.revenue_generated), 0);
+
+  return (
+    <Card className="rounded-2xl p-5 shadow-card">
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-lg inline-flex items-center gap-2"><Tag className="h-4 w-4 text-primary" /> Promotion Analytics</h3>
+        <p className="text-xs text-muted-foreground">{active.length} active · {expired.length} expired/inactive</p>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-secondary/60 p-3">
+          <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground"><Eye className="h-3 w-3" /> Offer views</p>
+          <p className="font-ui text-2xl font-bold">{totalViews}</p>
+        </div>
+        <div className="rounded-xl bg-secondary/60 p-3">
+          <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground"><CheckCircle2 className="h-3 w-3" /> Redemptions</p>
+          <p className="font-ui text-2xl font-bold">{totalRedemptions}</p>
+        </div>
+        <div className="rounded-xl bg-secondary/60 p-3">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Revenue from offers</p>
+          <p className="font-ui text-2xl font-bold">₹{totalRev.toFixed(0)}</p>
+        </div>
+      </div>
+
+      {top.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">No promotions yet.</p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Most Successful Offers</p>
+          {top.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{p.name}</p>
+                <p className="text-[11px] text-muted-foreground">{PROMO_TYPE_LABELS[p.type]}</p>
+              </div>
+              <div className="text-right text-xs font-ui">
+                <p>{p.usage_count} uses</p>
+                <p className="text-muted-foreground">{p.views_count} views</p>
+              </div>
+              <div className="w-20 text-right text-sm font-ui tabular-nums">₹{Number(p.revenue_generated).toFixed(0)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 
